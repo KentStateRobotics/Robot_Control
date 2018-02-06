@@ -1,7 +1,7 @@
-import threading
 import asyncio
 import websockets
 import json
+from enum import IntEnum, unique
 
 SOCK_PORT = 4242
 
@@ -47,3 +47,18 @@ class client:
     def destory(self):
         self.alive = False
         self.conn.close()
+
+@unique
+class dataId(IntEnum):
+    """
+    Modify this to match the one on the controler
+    """
+    FRMotor = 0
+    FLMotor = 1
+    BRMotor = 2
+    BLMotor = 3
+    ClawServo = 4
+    YawAct = 5
+    PitchAct = 6
+    ExtentionAct = 7
+    Error = 8
