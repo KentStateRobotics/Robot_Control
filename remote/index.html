@@ -2,15 +2,17 @@
 <html>
     <head>
         <link type="text/css" href="/style.css" rel="stylesheet"/> 
-        <script src="/client.js"></script>
         <title>Robot Control</title>
     </head>
     <body>
         <div id="connect">
-
+            <h1>Not connected</h1>
+            <input type="button" onclick="connect();" value="Connect"/>
+            <input id="ipBox" type="text" value="{ip}"/>
         </div>
         <div id="control">
-
+            
         </div>
     </body>
+    <script src="/client.js"></script>
 </html>

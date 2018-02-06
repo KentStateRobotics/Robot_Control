@@ -36,6 +36,9 @@ class client:
                 break 
             if not data is None:
                 data = json.loads(data)
+                res = {}
+                if not data[dataId.Request] is None:
+                    pass
     def send(self, data):
         asyncio.get_event_loop().create_task(self._sendHelper(json.dumps(data)))
     async def _sendHelper(self, data):
@@ -62,3 +65,4 @@ class dataId(IntEnum):
     PitchAct = 6
     ExtentionAct = 7
     Error = 8
+    Request = 9

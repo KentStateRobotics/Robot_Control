@@ -3,7 +3,7 @@ import socket
 import sockServer
 
 HTTP_PORT = 80
-JS_CLIENT = "client.js"
+INDEX = "index.html"
 
 def start():
     serverAddress = ('', HTTP_PORT)
@@ -54,10 +54,10 @@ class HTTPHandler(BaseHTTPRequestHandler):
     def readFile(self, fPath):
         with open(self.content + fPath) as f:
             fContent = f.read()
-            if fPath == JS_CLIENT:
+            f.close()
+            if fPath == INDEX:
                 localIp = (([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")] or [[(s.connect(("8.8.8.8", 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) + [""])[0]
                 fContent = fContent.format(ip = localIp + ":" + str(sockServer.SOCK_PORT))
-            f.close()
             return fContent
 
 
