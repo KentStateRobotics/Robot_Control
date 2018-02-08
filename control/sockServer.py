@@ -4,8 +4,10 @@ import json
 from enum import IntEnum, unique
 
 SOCK_PORT = 4242
-
 def start():
+    '''
+    Starts socket server and listens for connections
+    '''
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
@@ -37,7 +39,7 @@ class client:
             if not data is None:
                 data = json.loads(data)
                 res = {}
-                if not data[dataId.Request] is None:
+                if dataId.Request.value in data:
                     pass
     def send(self, data):
         asyncio.get_event_loop().create_task(self._sendHelper(json.dumps(data)))
@@ -56,13 +58,13 @@ class dataId(IntEnum):
     """
     Modify this to match the one on the controler
     """
-    FRMotor = 0
-    FLMotor = 1
-    BRMotor = 2
-    BLMotor = 3
-    ClawServo = 4
-    YawAct = 5
-    PitchAct = 6
-    ExtentionAct = 7
-    Error = 8
-    Request = 9
+    FRMotor = "0"
+    FLMotor = "1"
+    BRMotor = "2"
+    BLMotor = "3"
+    ClawServo = "4"
+    YawAct = "5"
+    PitchAct = "6"
+    ExtentionAct = "7"
+    Error = "8"
+    Request = "9"
