@@ -24,7 +24,9 @@ class HTTPHandler(BaseHTTPRequestHandler):
         "js": "application/javascript",
         "json": "application/json",
         "mp4": "video/mp4",
-        "ico": "image/x-icon"}
+        "ico": "image/x-icon",
+        "svg": "image/svg+xml"}
+    textMimes = [mimes["html"], mimes["txt"], mimes["css"], mimes["js"], mimes["json"]]
     def do_HEAD(self):
         self.send_response(200)
         self.send_header("Content-type", "text/html")
@@ -32,7 +34,8 @@ class HTTPHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.statusCode = 200
         self.mime = "text/html"
-        body = bytes(self.route(), "utf8")
+        body = self.route()
+        body = bytes(body, "utf8") if type(body) == str else body
         self.send_response(self.statusCode)
         self.send_header("Content-type", self.mime)
         self.end_headers()
@@ -42,17 +45,20 @@ class HTTPHandler(BaseHTTPRequestHandler):
     def route(self):
         path = self.path.split('/')
         if self.path == "/" or path[1] == "home":
-            return self.readFile("index.html")
+            return self.readFile("index.html", True)
         else:
             try:
-                fContent = self.readFile(path[1])
-                self.mime = self.mimes[path[1][path[1].rindex(".") + 1:]]
+                filePath = '/'.join(path[1:])
+                print(filePath)
+                self.mime = self.mimes[filePath[filePath.rindex('.') + 1:]]
+                fContent = self.readFile(filePath, self.mime in self.textMimes)
                 return fContent
             except IOError:
                 self.statusCode = 404
                 return "" 
-    def readFile(self, fPath):
-        with open(self.content + fPath) as f:
+    def readFile(self, fPath, text = False):
+        openMode = 'r' if text else 'rb'
+        with open(self.content + fPath, mode=openMode) as f:
             fContent = f.read()
             f.close()
             if fPath == INDEX:

@@ -1,0 +1,25 @@
+body, html{
+    height: 100%;
+}
+#content{
+    padding-bottom: 62px;
+    overflow: auto;
+}
+#wraper{
+    min-height: 100%;
+    
+}
+#header{
+    width: 100%; 
+    background: linear-gradient(#1F3D73,#0072BB); 
+    margin-top: -3.1px;
+}
+#footer{
+    width: 100%; 
+    background: linear-gradient(#0072BB,#1F3D73); 
+    padding-top: 20px;
+    position: relative;
+    margin-top: -62px;
+    height: 42px;
+    clear: both;
+}
