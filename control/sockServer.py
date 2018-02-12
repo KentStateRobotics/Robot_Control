@@ -1,7 +1,8 @@
 import asyncio
 import websockets
 import json
-from enum import IntEnum, unique
+import control
+from protocol import field, action, motor, power
 
 SOCK_PORT = 4242
 def start():
@@ -39,8 +40,22 @@ class client:
             if not data is None:
                 data = json.loads(data)
                 res = {}
-                if dataId.Request.value in data:
-                    pass
+                if field.action.value in data:
+                    if data[field.action.value] == action.requestAll:
+                        res[field.action.value] = action.update.value
+                        res[field.motor.value] = motorStatus
+                        res[field.power.value] = powerStatus
+                    elif data[field.action.value] == action.command:
+                        if data[field.motors.value] in data:
+                            control.command(data[field.motors.value])
+                    elif data[field.action.value] == action.stop:
+                        control.stop()
+                    elif data[field.action.value] == action.auto:
+                        pass
+                    elif data[field.action.value] == action.error:
+                        pass
+                if res != {}:
+                    self.send(res)
     def send(self, data):
         asyncio.get_event_loop().create_task(self._sendHelper(json.dumps(data)))
     async def _sendHelper(self, data):
@@ -53,18 +68,3 @@ class client:
         self.alive = False
         self.conn.close()
 
-@unique
-class dataId(IntEnum):
-    """
-    Modify this to match the one on the controler
-    """
-    FRMotor = "0"
-    FLMotor = "1"
-    BRMotor = "2"
-    BLMotor = "3"
-    ClawServo = "4"
-    YawAct = "5"
-    PitchAct = "6"
-    ExtentionAct = "7"
-    Error = "8"
-    Request = "9"

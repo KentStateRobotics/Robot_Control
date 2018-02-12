@@ -7,7 +7,7 @@ const net = { //Protocall used to send / receive info
     field: {
         action: 0,
         motor: 1,
-        input: 2
+        power: 2
     },
     action: {
         requestAll: 0,
@@ -26,23 +26,15 @@ const net = { //Protocall used to send / receive info
         armAct: 5,
         armBelt: 6
     },
-    input: {
+    powerStatus: {
         battery: 0,
         main: 1,
         motor: 2 //object of motors
     }
 }
-var data = {};
-const gauges = {
-    Battery: null,
-    Main: null,
-    M1: null,
-    M2: null,
-    M3: null,
-    M4: null,
-    M5: null,
-    M6: null
-}
+var powerStatus = {};
+var motorStatus = {};
+var gauges = {};
 //#endregion
 //#region CLASSES -------------------------------------------------------------------
 class inputKey{
@@ -79,8 +71,8 @@ function changeScene(scene){
 function start(){
     document.addEventListener('keydown', (event) => {
         const keyPressed = keys.filter((k) => k.key == event.key);
-        console.log(keyPressed);
         if(keyPressed != null && currentScene == "control"){
+            console.log(keyPressed);
             keyPressed.down = true;
         }
     });
@@ -106,26 +98,14 @@ function start(){
         new inputKey('aExtend', 'w'),
         new inputKey('aRetract', 's')
     ];
-    data = {
-        FRDrive: 0,
-        FLDrive: 0,
-        BRDrive: 0,
-        BLDrive: 0,
-        armPiv: 0,
-        armAct: 0,
-        armBelt: 0,
-        battery: 0,
-        main: 0,
-        motor: {
-            FRDrive: 0,
-            FLDrive: 0,
-            BRDrive: 0,
-            BLDrive: 0,
-            armPiv: 0,
-            armAct: 0,
-            armBelt: 0
-        }
-    };
+    for(var key in net.powerStatus){
+        powerStatus[net.powerStatus[key]] = 0;
+    }
+    powerStatus[net.powerStatus.motor] = {}
+    for(var key in net.motor){
+        powerStatus[net.powerStatus.motor][net.motor[key]] = 0;
+        motorStatus[net.motor[key]] = 0;
+    }
     var opts = {
         angle: 0.0, // The span of the gauge arc
         lineWidth: 0.3, // The line thickness
@@ -142,27 +122,32 @@ function start(){
         generateGradient: true,
         highDpiSupport: true,     // High resolution support
     };
-    for(var key in gauges){
-        var target = document.getElementById('gauge' + key);
-        if(key == "Battery"){
+    for(var key in net.motor){
+        document.getElementById("gauges").innerHTML += '<div><canvas id="'+key+'Gauge"></canvas><p id="'+key+'Text">Motor</p></div>'
+    }
+    for(var key in powerStatus){
+        console.log(key)
+        var target = document.getElementById(key + 'Gauge');
+        if(key == "battery"){
             opts.percentColors = [[0.0, "#FF0000" ], [1.0, "#00FF00"]];
         } else {
             opts.percentColors = [[0.0, "#00FF00" ], [1.0, "#FF0000"]];
         }
         var gauge = new Gauge(target).setOptions(opts);
         gauge.animationSpeed = 16;
-        if(key == "Battery"){
+        if(key == "battery"){
             gauge.maxValue = 16;
             gauge.set(14);
-        } else if(key == "Main"){
+        } else if(key == "main"){
             gauge.maxValue = 10;
             gauge.set(9);
         } else {
             gauge.maxValue = 5;
             gauge.set(1);
         }
-        gauges.key = gauge;
-        document.getElementById('text' + key).innerText = "Level is " + data.battery + " volts";
+        console.log(key);
+        gauges[key] = gauge;
+        document.getElementById('text' + key).innerText = "Level is " + powerStatus.key + " volts";
     }
 }
 function send(message){
@@ -173,8 +158,10 @@ function connect(){
     console.log(ip);
     conn = new WebSocket("ws://" + ip);
 }
-function updateGauge(gauge, value){
-
+function updateGauges(){
+    for(var gauge in gauges){
+        gauges[gauge].set()
+    }
 }
 function loop(){
 
