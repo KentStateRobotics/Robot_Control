@@ -31,5 +31,20 @@ canvas{
     width: 100%;
 }
 #gauges > div.largeGauge{
-    width: 16%
+    width: 12%
+}
+input[type=range][orient=vertical]
+{
+    -webkit-appearance: slider-vertical; /* WebKit */
+    width: 8px;
+    height: 175px;
+    padding: 0 5px;
+}
+#buttons{
+    display: flex;
+}
+#moveCon{
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
 }

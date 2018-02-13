@@ -21,8 +21,18 @@
                 </div>
                 <div id="control">
                     <h1>connected</h1>
-                    <lable>Speed Control: </lable><input type="range" min="0" max="100"/>
-                    <label>Current Speed: </label><input id="currentSpeed" type="range" min="0" max="100"/>
+                    <div id="buttons">
+                        <lable>Speed Control: </lable><input orient="vertical" id="comSpeed" type="range" min="0" max="100" value="0" onchange="setSpeed(this.value);"/>
+                        <label>Current Speed: </label><input orient="vertical" id="currentSpeed" type="range" min="0" max="100"/>
+                        <div id="moveCon">
+                            <input style="grid-column: 2;" type="button" value="W" />
+                            <input style="grid-column: 1; grid-row: 2" type="button" value="A" />
+                            <input style="grid-column: 2; grid-row: 2;" type="button" value="Stop" />
+                            <input style="grid-column: 2; grid-row: 3;" type="button" value="S" />
+                            <input style="grid-column: 3; grid-row: 2;" type="button" value="D" />
+                            
+                        </div>
+                    </div>
                     <div id="gauges">
                         <div class="largeGauge">
                             <canvas id="batteryGauge"></canvas>

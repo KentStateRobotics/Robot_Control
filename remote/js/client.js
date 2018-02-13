@@ -2,7 +2,47 @@
 var ip = document.getElementById("ipBox").value;
 var conn = new WebSocket("ws://" + ip);
 var currentScene = "connect";
-var keys = [];
+var keys = [
+    inputKey('rForward', 'w', (req) => {
+        req[net.field.motor] = {};
+        req[net.field.motor][net.motor.FRDrive] = speed;
+        req[net.field.motor][net.motor.FLDrive] = speed;
+        req[net.field.motor][net.motor.BRDrive] = speed;
+        req[net.field.motor][net.motor.BLDrive] = speed;
+        return req;
+    }),
+    inputKey('rReverse', 's', (req) => {
+        req[net.field.motor] = {};
+        req[net.field.motor][net.motor.FRDrive] = -1 * speed;
+        req[net.field.motor][net.motor.FLDrive] = -1 * speed;
+        req[net.field.motor][net.motor.BRDrive] = -1 * speed;
+        req[net.field.motor][net.motor.BLDrive] = -1 * speed;
+        return req;
+    }),
+    inputKey('rRight', 'd', (req) => {
+        req[net.field.motor] = {};
+        req[net.field.motor][net.motor.FRDrive] = speed / -2;
+        req[net.field.motor][net.motor.FLDrive] = speed / 2;
+        req[net.field.motor][net.motor.BRDrive] = speed / -2;
+        req[net.field.motor][net.motor.BLDrive] = speed / 2;
+        return req;
+    }),
+    inputKey('rLeft', 'a', (req) => {
+        req[net.field.motor] = {};
+        req[net.field.motor][net.motor.FRDrive] = speed / 2;
+        req[net.field.motor][net.motor.FLDrive] = speed / -2;
+        req[net.field.motor][net.motor.BRDrive] = speed / 2;
+        req[net.field.motor][net.motor.BLDrive] = speed / -2;
+        return req;
+    }),
+    inputKey('speedUp', 'Shift'),
+    inputKey('speedDown', 'Control'),
+    inputKey('stop', ' '),
+    inputKey('aUp', 'q'),
+    inputKey('aDown', 'e'),
+    inputKey('aForward', 'r'),
+    inputKey('aReverse', 'f')
+];
 const net = { //Protocall used to send / receive info
     field: {
         action: 0,
@@ -35,22 +75,24 @@ const net = { //Protocall used to send / receive info
 var powerStatus = {};
 var motorStatus = {};
 var gauges = {};
+var speed = 0;
 //#endregion
-//#region CLASSES -------------------------------------------------------------------
-class inputKey{
-    constructor(name, key){
-        this.name = name;
-        this.key = key;
-        this.down = false;
-    }
-}
-//#endregion
-//#region CONN FUNCTIONS ------------------------------------------------------------
+//#region EVENT FUNCTIONS ------------------------------------------------------------
 conn.onmessage = function (message){
     data = JSON.parse(message);
-    data.forEach(function(element) {
-        console.log(element);
-    });
+    console.log(data);
+    switch(data[net.field.action]){
+        case net.action.command:
+        case net.action.update:
+            for(var key in Object.assign(data[net.field.power], data[net.field.power][net.powerStatus.motor])){
+                powerStatus[key] = data[net.field.power][key];
+            }
+            for(var key in data[net.field.motor]){
+                motorStatus[key] = data[net.field.motor][key];
+            }
+            updateGauges();
+        break;
+    }
 }
 conn.onopen = function (){
     changeScene("control");
@@ -61,6 +103,25 @@ conn.onopen = function (){
 conn.onclose = function (){
     changeScene("connect")
 }
+document.addEventListener('keydown', (event) => {
+    var keyPressed = keys.filter((k) => k.key == event.key)[0];
+    if(keyPressed != null && currentScene == "control"){
+        event.preventDefault();
+        keyPressed.down = true;
+        console.log(keyPressed['name']);
+        req = {};
+        req[net.field.action] = net.action.command;
+        req = keyPressed.event(req);
+
+    }
+});
+document.addEventListener('keyup', (event) => {
+    const keyReleased = keys.filter((k) => k.key == event.key)[0];
+    if(keyReleased != null){
+        event.preventDefault();
+        keyReleased.down = false;
+    }
+});
 //#endregion
 //#region FUNCTIONS -----------------------------------------------------------------
 function changeScene(scene){
@@ -69,43 +130,15 @@ function changeScene(scene){
     document.getElementById("control").hidden = !(scene == "control");
 }
 function start(){
-    document.addEventListener('keydown', (event) => {
-        const keyPressed = keys.filter((k) => k.key == event.key);
-        if(keyPressed != null && currentScene == "control"){
-            console.log(keyPressed);
-            keyPressed.down = true;
-        }
-    });
-    document.addEventListener('keyup', (event) => {
-        const keyReleased = keys.filter((k) => k.key == event.key);
-        console.log(keyReleased);
-        if(keyReleased != null){
-            keyPressed.down = false;
-        }
-    });
     window.setInterval(loop, 1000/60);
-    key = [
-        new inputKey('rForward', 'up arrow'),
-        new inputKey('rReverse', 'down arrow'),
-        new inputKey('rRight', 'right arrow'),
-        new inputKey('rLeft', 'left arrow'),
-        new inputKey('aUp', 'spacebar'),
-        new inputKey('aDown', 'shift'),
-        new inputKey('aRight', 'd'),
-        new inputKey('aLeft', 'a'),
-        new inputKey('aOpen', 'r'),
-        new inputKey('aClose', 'f'),
-        new inputKey('aExtend', 'w'),
-        new inputKey('aRetract', 's')
-    ];
     for(var key in net.powerStatus){
-        powerStatus[net.powerStatus[key]] = 0;
+        if(key == 'motor') continue;
+        powerStatus[key] = 0;
     }
-    powerStatus[net.powerStatus.motor] = {}
     for(var key in net.motor){
-        powerStatus[net.powerStatus.motor][net.motor[key]] = 0;
-        motorStatus[net.motor[key]] = 0;
+        motorStatus[key] = 0;
     }
+    Object.assign(powerStatus, motorStatus);
     var opts = {
         angle: 0.0, // The span of the gauge arc
         lineWidth: 0.3, // The line thickness
@@ -125,6 +158,7 @@ function start(){
     for(var key in net.motor){
         document.getElementById("gauges").innerHTML += '<div><canvas id="'+key+'Gauge"></canvas><p id="'+key+'Text">Motor</p></div>'
     }
+    temp = {};
     for(var key in powerStatus){
         console.log(key)
         var target = document.getElementById(key + 'Gauge');
@@ -137,18 +171,14 @@ function start(){
         gauge.animationSpeed = 16;
         if(key == "battery"){
             gauge.maxValue = 16;
-            gauge.set(14);
         } else if(key == "main"){
             gauge.maxValue = 10;
-            gauge.set(9);
         } else {
             gauge.maxValue = 5;
-            gauge.set(1);
         }
-        console.log(key);
         gauges[key] = gauge;
-        document.getElementById('text' + key).innerText = "Level is " + powerStatus.key + " volts";
     }
+    updateGauges();
 }
 function send(message){
     conn.send(JSON.stringify(message));
@@ -159,12 +189,22 @@ function connect(){
     conn = new WebSocket("ws://" + ip);
 }
 function updateGauges(){
-    for(var gauge in gauges){
-        gauges[gauge].set()
+    for(var key in gauges){
+        gauges[key].set(powerStatus[key]);
+        document.getElementById(key + 'Text').innerText = key + ": " + powerStatus[key] + " amps";
+        if(key == 'battery'){
+            document.getElementById(key + 'Text').innerText = key + ": " + powerStatus[key] + " volts";
+        }
     }
+}
+function inputKey(name, key, event){
+    return {'name': name, 'key': key, 'down': false, 'event': event};
 }
 function loop(){
 
+}
+function setSpeed(value){
+    speed = value;
 }
 //#endregion
 
