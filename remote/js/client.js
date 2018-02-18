@@ -3,45 +3,61 @@ var ip = document.getElementById("ipBox").value;
 var conn = new WebSocket("ws://" + ip);
 var currentScene = "connect";
 var keys = [
-    inputKey('rForward', 'w', (req) => {
+    inputKey('forward', 'w', (req = {}) => {
+        move = 'forward';
         req[net.field.motor] = {};
-        req[net.field.motor][net.motor.FRDrive] = speed;
-        req[net.field.motor][net.motor.FLDrive] = speed;
-        req[net.field.motor][net.motor.BRDrive] = speed;
-        req[net.field.motor][net.motor.BLDrive] = speed;
+        return makeMotorRequest(speed, reqObj = req);
+    }),
+    inputKey('reverse', 's', (req = {}) => {
+        move = 'reverse';
+        req[net.field.motor] = {};
+        return makeMotorRequest(-1 * speed, reqObj = req);
+    }),
+    inputKey('right', 'd', (req = {}) => {
+        turn = 'right';
+        req[net.field.motor] = {};
+        if(move == '' || speed <= 16){
+            return makeMotorRequest(-16, 16, reqObj = req);
+        }else if(move == 'forward'){
+            return makeMotorRequest(speed - 32, speed, reqObj = req);
+        }else{
+            return makeMotorRequest(speed + 32, speed, reqObj = req);
+        }
         return req;
     }),
-    inputKey('rReverse', 's', (req) => {
+    inputKey('left', 'a', (req = {}) => {
+        turn = 'left';
         req[net.field.motor] = {};
-        req[net.field.motor][net.motor.FRDrive] = -1 * speed;
-        req[net.field.motor][net.motor.FLDrive] = -1 * speed;
-        req[net.field.motor][net.motor.BRDrive] = -1 * speed;
-        req[net.field.motor][net.motor.BLDrive] = -1 * speed;
+        if(move == '' || speed <= 16){
+            return makeMotorRequest(16, -16, reqObj = req);
+        }else if(move == 'forward'){
+            return makeMotorRequest(speed, speed - 32, reqObj = req);
+        }else{
+            return makeMotorRequest(speed, speed + 32, reqObj = req);
+        }
         return req;
     }),
-    inputKey('rRight', 'd', (req) => {
-        req[net.field.motor] = {};
-        req[net.field.motor][net.motor.FRDrive] = speed / -2;
-        req[net.field.motor][net.motor.FLDrive] = speed / 2;
-        req[net.field.motor][net.motor.BRDrive] = speed / -2;
-        req[net.field.motor][net.motor.BLDrive] = speed / 2;
-        return req;
+    inputKey('speedUp', 'Shift', (req = {}) => {
+        speed = Math.min(speed + 16, 256);
+        if(turn != ''){
+            return keys.filter(x => x.name == turn)[0].event();
+        }else if(move != ''){
+            return keys.filter(x => x.name == turn)[0].event();
+        }
     }),
-    inputKey('rLeft', 'a', (req) => {
-        req[net.field.motor] = {};
-        req[net.field.motor][net.motor.FRDrive] = speed / 2;
-        req[net.field.motor][net.motor.FLDrive] = speed / -2;
-        req[net.field.motor][net.motor.BRDrive] = speed / 2;
-        req[net.field.motor][net.motor.BLDrive] = speed / -2;
-        return req;
+    inputKey('speedDown', 'Control', (req = {}) => {
+        speed = Math.max(speed - 16, 0);
+        if(turn != ''){
+            return keys.filter(x => x.name == turn)[0].event();
+        }else if(move != ''){
+            return keys.filter(x => x.name == turn)[0].event();
+        }
     }),
-    inputKey('speedUp', 'Shift'),
-    inputKey('speedDown', 'Control'),
-    inputKey('stop', ' '),
-    inputKey('aUp', 'q'),
-    inputKey('aDown', 'e'),
-    inputKey('aForward', 'r'),
-    inputKey('aReverse', 'f')
+    inputKey('stop', ' ', (req = {}) => {}),
+    inputKey('aUp', 'q', (req = {}) => {}),
+    inputKey('aDown', 'e', (req = {}) => {}),
+    inputKey('aForward', 'r', (req = {}) => {}),
+    inputKey('aReverse', 'f', (req = {}) => {})
 ];
 const net = { //Protocall used to send / receive info
     field: {
@@ -76,6 +92,9 @@ var powerStatus = {};
 var motorStatus = {};
 var gauges = {};
 var speed = 0;
+//Remember what command the robot is being given
+var move = '';
+var turn = '';
 //#endregion
 //#region EVENT FUNCTIONS ------------------------------------------------------------
 conn.onmessage = function (message){
@@ -105,21 +124,39 @@ conn.onclose = function (){
 }
 document.addEventListener('keydown', (event) => {
     var keyPressed = keys.filter((k) => k.key == event.key)[0];
-    if(keyPressed != null && currentScene == "control"){
+    if(keyPressed != null && currentScene == "control" && keyPressed.down == false){
         event.preventDefault();
         keyPressed.down = true;
         console.log(keyPressed['name']);
         req = {};
         req[net.field.action] = net.action.command;
         req = keyPressed.event(req);
-
+        conn.send(req);
     }
 });
 document.addEventListener('keyup', (event) => {
     const keyReleased = keys.filter((k) => k.key == event.key)[0];
-    if(keyReleased != null){
+    if(keyReleased != null && keyPressed.down == true){
         event.preventDefault();
         keyReleased.down = false;
+        req = {};
+        if(keyPressed.name == 'right' || keyPressed.name == 'left'){
+            turn = '';
+            if(move != ''){
+                req = keys.filter(x => x.name == move)[0].event(req);
+            } else {
+                req = makeMotorRequest(0, reqObj = req);
+            }
+        }
+        if(keyPressed.name == 'forward' || keyPressed.name == 'reverse'){
+            move = '';
+            if(turn != ''){
+                req = keys.filter(x => x.name == turn)[0].event(req);
+            } else {
+                req = makeMotorRequest(0, reqObj = req);
+            }
+        }
+        if(req != {}) conn.send(req);
     }
 });
 //#endregion
@@ -205,6 +242,19 @@ function loop(){
 }
 function setSpeed(value){
     speed = value;
+}
+function makeMotorRequest(fr, fl = null, br = null, bl = null, reqObj = {}){
+    if(fl == null){
+        fl, br, bl = fr;
+    } else if(br == null){
+        br = fr;
+        bl = bl;
+    }
+    reqObj[net.field.motor][net.motor.FRDrive] = fr;
+    reqObj[net.field.motor][net.motor.FLDrive] = fl;
+    reqObj[net.field.motor][net.motor.BRDrive] = br;
+    reqObj[net.field.motor][net.motor.BLDrive] = bl;
+    return reqObj;
 }
 //#endregion
 
