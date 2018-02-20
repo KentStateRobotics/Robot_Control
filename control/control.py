@@ -25,6 +25,7 @@ def command(motors):
     for key, value in motors.items():
         commandStatus[key] = value
         commands[key](value)
+        print(value);
 def stop():
     for key in motor:
         commandStatus[key] = 0

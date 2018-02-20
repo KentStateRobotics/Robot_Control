@@ -33,12 +33,13 @@ class client:
     async def beginReceiveLoop(self):
         while self.alive:
             try:
-                data = await self.conn.recv()
+                message = await self.conn.recv()
             except websockets.exceptions.ConnectionClosed as e:
                 self.destory()
                 break 
-            if not data is None:
-                data = json.loads(data)
+            if message == "":
+                print(message)
+                data = json.loads(message)
                 res = {}
                 if field.action.value in data:
                     if data[field.action.value] == action.requestAll:
