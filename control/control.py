@@ -13,7 +13,6 @@ powerStatus = {}
 motorStatus = {}
 
 def start():
-    
     for key in power:
         powerStatus[key] = 0
     powerStatus[power.motor.value] = {}
@@ -30,5 +29,11 @@ def stop():
     for key in motor:
         commandStatus[key] = 0
         commands[key] = 0
+def getAll():
+    data = {}
+    data[field.action.value] = action.update.value
+    data[field.motor.value] = motorStatus
+    dta[field.power.value] = powerStatus
+    return data
 
 start()

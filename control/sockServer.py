@@ -43,9 +43,7 @@ class client:
                 res = {}
                 if field.action.value in data:
                     if data[field.action.value] == action.requestAll:
-                        res[field.action.value] = action.update.value
-                        res[field.motor.value] = motorStatus
-                        res[field.power.value] = powerStatus
+                        send(control.getAll())
                     elif data[field.action.value] == action.command:
                         if data[field.motors.value] in data:
                             control.command(data[field.motors.value])

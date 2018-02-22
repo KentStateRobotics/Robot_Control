@@ -11,30 +11,28 @@ var keys = [
     }),
     inputKey('reverse', 's', (req = {}) => {
         move = 'reverse';
-        req[net.field.motor] = {};
-        return makeMotorRequest(-1 * speed, reqObj = req[net.field.motor]);
+        req[net.field.motor] = makeMotorRequest(-1 * speed);
+        return req;
     }),
     inputKey('right', 'd', (req = {}) => {
         turn = 'right';
-        req[net.field.motor] = {};
         if(move == '' || speed <= 16){
-            return makeMotorRequest(-16, 16, reqObj = req[net.field.motor]);
+            req[net.field.motor] = makeMotorRequest(-16, 16);
         }else if(move == 'forward'){
-            return makeMotorRequest(speed - 32, speed, reqObj = req[net.field.motor]);
+            req[net.field.motor] = makeMotorRequest(speed - 32, speed);
         }else{
-            return makeMotorRequest(speed + 32, speed, reqObj = req[net.field.motor]);
+            req[net.field.motor] = makeMotorRequest(speed + 32, speed);
         }
         return req;
     }),
     inputKey('left', 'a', (req = {}) => {
         turn = 'left';
-        req[net.field.motor] = {};
         if(move == '' || speed <= 16){
-            return makeMotorRequest(16, -16, reqObj = req[net.field.motor]);
+            req[net.field.motor] = makeMotorRequest(16, -16);
         }else if(move == 'forward'){
-            return makeMotorRequest(speed, speed - 32, reqObj = req[net.field.motor]);
+            req[net.field.motor] = makeMotorRequest(speed, speed - 32);
         }else{
-            return makeMotorRequest(speed, speed + 32, reqObj = req[net.field.motor]);
+            req[net.field.motor] = makeMotorRequest(speed, speed + 32);
         }
         return req;
     }),
@@ -141,12 +139,13 @@ document.addEventListener('keyup', (event) => {
         event.preventDefault();
         keyReleased.down = false;
         req = {};
+        req[net.field.action] = net.action.command;
         if(keyReleased.name == 'right' || keyReleased.name == 'left'){
             turn = '';
             if(move != ''){
                 req = keys.filter(x => x.name == move)[0].event(req);
             } else {
-                req = makeMotorRequest(0, reqObj = req);
+                req[net.field.motor] = makeMotorRequest(0);
             }
         }
         if(keyReleased.name == 'forward' || keyReleased.name == 'reverse'){
@@ -154,7 +153,7 @@ document.addEventListener('keyup', (event) => {
             if(turn != ''){
                 req = keys.filter(x => x.name == turn)[0].event(req);
             } else {
-                req = makeMotorRequest(0, reqObj = req);
+                req[net.field.motor] = makeMotorRequest(0);
             }
         }
         if(req != {}) send(req);
@@ -247,7 +246,9 @@ function setSpeed(value){
 }
 function makeMotorRequest(fr, fl = null, br = null, bl = null, reqObj = {}){
     if(fl == null){
-        fl, br, bl = fr;
+        fl = fr;
+        br = fr;
+        bl = fr;
     } else if(br == null){
         br = fr;
         bl = bl;
