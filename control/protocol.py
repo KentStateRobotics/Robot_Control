@@ -15,13 +15,11 @@ class action(IntEnum):
     auto = "5"
 @unique
 class motor(IntEnum):
-    FRDrive = "0"
-    FLDrive = "1"
-    BRDrive = "2"
-    BLDrive = "3"
-    armPiv = "4"
-    armAct = "5"
-    armBelt = "6"
+    driveR = "0"
+    driveL = "1"
+    actPitch = "2"
+    actLower = "3"
+    belt = "4"
 @unique
 class power(IntEnum):
     battery = "0"

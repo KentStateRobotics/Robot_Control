@@ -1,6 +1,8 @@
 //#region GLOBAL VARS AND CONSTS---------------------------------------------------------------
-var ip = document.getElementById("ipBox").value;
-var conn = new WebSocket("ws://" + ip);
+var ip = document.location.hostname;
+const SOCKET_PORT = 4242;
+var conn = new WebSocket("ws://" + document.location.hostname + ':' + SOCKET_PORT);
+document.getElementById("ipBox").value = ip;
 var currentScene = "connect";
 var keys = [
     inputKey('forward', 'w', (req = {}) => {
@@ -73,13 +75,11 @@ const net = { //Protocall used to send / receive info
         auto: 5
     },
     motor: {
-        FRDrive: 0,
-        FLDrive: 1,
-        BRDrive: 2,
-        BLDrive: 3,
-        armPiv: 4,
-        armAct: 5,
-        armBelt: 6
+        driveR: 0,
+        driveL: 1,
+        actPitch: 2,
+        actLower: 3,
+        belt: 4
     },
     powerStatus: {
         battery: 0,
@@ -224,7 +224,7 @@ function send(message){
 function connect(){
     ip = document.getElementById("ipBox").value;
     console.log(ip);
-    conn = new WebSocket("ws://" + ip);
+    conn = new WebSocket("ws://" + ip + ':' + SOCKET_PORT);
 }
 function updateGauges(){
     for(var key in gauges){
@@ -260,5 +260,4 @@ function makeMotorRequest(fr, fl = null, br = null, bl = null, reqObj = {}){
     return reqObj;
 }
 //#endregion
-
 start();
