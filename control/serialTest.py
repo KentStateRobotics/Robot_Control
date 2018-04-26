@@ -16,9 +16,6 @@ class serialOutput(asyncio.Protocol):
         transport.serial.rts = False
         self.buffer = bytes(100)
         self.bufferLoc = 0
-        print("port opened")
-        input()
-        transport.write(b'<k1Z<>')
 
     def data_received(self, data):
         for i in range(0, len(data)):
