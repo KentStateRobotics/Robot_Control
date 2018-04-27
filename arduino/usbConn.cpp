@@ -2,11 +2,11 @@
 
 void usbConn::write(const char* message, int length){
   char[2] header;
-  header[0] = usbConn.controlChar;
-  header[1] = usbConn.calcChecksum(message, length);
+  header[0] = CON_CHAR;
+  header[1] = calcChecksum(message, length);
   char[2] footer;
-  footer[0] = usbConn.controlChar;
-  footer[1] = usbConn.endChar;
+  footer[0] = CON_CHAR;
+  footer[1] = END_CHAR;
   Serial.write(header, 2);
   Serial.write(message, length);
   Serial.write(footer, 2);
@@ -20,7 +20,7 @@ int usbConn::readLoop(){
     }
     switch(state){
       case reading:
-        if(recChar == controlChar){
+        if(recChar == CON_CHAR){
           state = readCon;
         }else if(bufferLoc < bufferSize){
           buffer[bufferLoc] = recChar;
@@ -28,7 +28,7 @@ int usbConn::readLoop(){
         } 
       break;
       case notReading:
-        if(recChar == controlChar){
+        if(recChar == CON_CHAR){
           timer = 0;
           bufferLoc = 0;
           state = readCheck;
@@ -36,17 +36,17 @@ int usbConn::readLoop(){
       break;
       case readCon:
         state = reading;
-        if(recChar == controlChar) {//Control byte was escaped
+        if(recChar == CON_CHAR) {//Control byte was escaped
           buffer[bufferLoc] = recChar;
           ++bufferLoc;
-        }else if(recChar == endChar){ 
+        }else if(recChar == END_CHAR){ 
           state = notReading;
           char[2] ack;
-          ack[0] = usbConn.controlChar;
-          if(usbConn.checksum == calcChecksum(buffer, bufferLoc)){
-            ack[1] = usbConn.ackChar;
+          ack[0] = CON_CHAR;
+          if(checksum == calcChecksum(buffer, bufferLoc)){
+            ack[1] = ACK_CHAR;
           } else {
-            ack[1] = nackChar;
+            ack[1] = NAK_CHAR;
           }
           write(ack);
           return bufferLoc;
