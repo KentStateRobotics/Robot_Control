@@ -5,21 +5,25 @@
 
 #include "Arduino.h"
 
-class serialConn{
+class usbConn{
     public:
-        serialConn(int baud = 9600, bool enableRecAck = true, bool enableSendAck = true){ //TODO impliment enables
-            Serial.begin(baud);
-            this.enableRecAck = enableRecAck;
-            this.enableSendAck = enableSendAck;
+        usbConn() : usbConn(true, false) {};
+        usbConn(bool enableRecAck, bool enableSendAck){
+            this->enableRecAck = enableRecAck;
+            this->enableSendAck = enableSendAck;
         };
-        ~serialConn(){ 
-            Serial.close();
+        ~usbConn(){
+            Serial.flush();
+            Serial.end();
             delete[] buffer;
         };
+        void start(int baud){ Serial.begin(baud); };
+        void start(){ start(9600); };
         void write(const char* message, int length);
+        void write(String message);
         int readLoop(); //Run this on each iteration of loop, if it does not return 0 there is stuff to read
         const char* getBuffer() { return buffer; };
-        void setTimeout(int timeout){ this.timeout = timeout; };
+        void setTimeout(int timeout){ this->timeout = timeout; };
     private:
         const char CON_CHAR = '<';
         const char END_CHAR = '>';
@@ -35,7 +39,7 @@ class serialConn{
         enum readState{notReading, readCheck, readCon, reading};
         readState state = notReading;
 
-        char checkChecksum(const char message[], int length);
-}
+        char calcChecksum(const char message[], int length);
+};
 
 #endif

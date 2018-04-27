@@ -1,21 +1,27 @@
 #include "usbConn.h"
 
 void usbConn::write(const char* message, int length){
-  char[2] header;
+  char header[2];
   header[0] = CON_CHAR;
   header[1] = calcChecksum(message, length);
-  char[2] footer;
+  char footer[2];
   footer[0] = CON_CHAR;
   footer[1] = END_CHAR;
   Serial.write(header, 2);
   Serial.write(message, length);
   Serial.write(footer, 2);
 }
-
+void usbConn::write(String message) {
+    int length = message.length() + 1;
+    char* temp = new char[length];
+    message.toCharArray(temp, length);
+    write(temp, length);
+    delete[] temp;
+}
 int usbConn::readLoop(){
   if(Serial.available()){
     char recChar = Serial.read();
-    if(state != notReading && timeout < mills() - timer){
+    if(state != notReading && timeout < millis() - timer){
       state = notReading;
     }
     switch(state){
@@ -29,7 +35,7 @@ int usbConn::readLoop(){
       break;
       case notReading:
         if(recChar == CON_CHAR){
-          timer = 0;
+          timer = millis();
           bufferLoc = 0;
           state = readCheck;
         }
@@ -41,14 +47,17 @@ int usbConn::readLoop(){
           ++bufferLoc;
         }else if(recChar == END_CHAR){ 
           state = notReading;
-          char[2] ack;
+          char ack[2];
           ack[0] = CON_CHAR;
           if(checksum == calcChecksum(buffer, bufferLoc)){
             ack[1] = ACK_CHAR;
           } else {
             ack[1] = NAK_CHAR;
+            bufferLoc = 0;
           }
-          write(ack);
+          if(enableRecAck){
+            write(ack, 2);
+          }
           return bufferLoc;
         }else{
           state = notReading;
@@ -65,8 +74,8 @@ int usbConn::readLoop(){
 
 char usbConn::calcChecksum(const char* message, int length){
   char checksum = 0;
-  for(int i = 0; i < messageLength; ++i){
-    checksum = checksum ^ buffer[i];
+  for(int i = 0; i < length; ++i){
+    checksum ^= message[i];
   }
   return checksum;
 }
