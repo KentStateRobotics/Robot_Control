@@ -1,4 +1,5 @@
 import serial
+import serial.tools.list_ports
 import threading
 import time
 from enum import IntEnum, unique
@@ -6,8 +7,14 @@ from enum import IntEnum, unique
 class serialConn():
     """Communicates with arduino over serial. Will start a new thread
     Args:
-        port (int): serial port to connect to
         recEvent (method): event to fire when message is received (foo(message))
+        target (str): search though ports and find one with device with the target in its discription
+        port (str): overides target and connects to specifed port
+        bufferSize (int): size of receive buffer and max send amount
+        baud (int): serial data rate
+        timeout (float): send, receive, ack timeouts seconds
+        enableSendAck (bool): await an ack on all sent frames
+        enableRecAck (bool): send ack on all received frames NOT IMPLEMENTED
     """
     CON_CHAR = '<'
     END_CHAR = '>'
@@ -21,7 +28,7 @@ class serialConn():
         conReceiving = 2,
         checkReceiving = 3
 
-    def __init__(self, port, recEvent, bufferSize = 100, baud=9600, timeout=1, enableSendAck = True, enableRecAck = False):
+    def __init__(self, recEvent, port=None, target="Arduino", bufferSize = 100, baud=9600, timeout=1, enableSendAck = True, enableRecAck = False):
         self.enableSendAck = enableSendAck
         self.enableRecAck = enableRecAck
         self._port = port
@@ -36,6 +43,12 @@ class serialConn():
         self._recTimer = 0
         self._checksum = 0
         self._queuedMessaegs = []
+        if port is None:
+            ports = serial.tools.list_ports.comports()
+            for p in ports:
+                if target in p[1]:
+                    port = p[0]
+                    break
         threading.Thread(target=self._start).start()
     def write(self, message, ignoreQueue = False):
         """Sends stuff over the serial connection
@@ -114,20 +127,11 @@ class serialConn():
                 self._state = self.states.checkReceiving
                 self._bufferLoc = 0
                 self._recTimer = time.time()
-        for message, timer in self._queuedMessaegs:
-            if time.time() - timer > self._timeout:
-                print("sending")
-                self._queuedMessaegs.remove((message, timer))
-        if self._nonAckMessage and time.time() - self._ackTimer > self._timeout:
-            self.write(self._nonAckMessage)
-            self._ackTimer = time.time()
-
-def bar(message):
-    print("received:")
-    print(message)
-
-foo = serialConn('COM6', bar, timeout=5)
-while True:
-    value = input()
-    print("INPUT: " + value + "\n")
-    foo.write(value)
+        if self.enableSendAck:
+            for message, timer in self._queuedMessaegs:
+                if time.time() - timer > self._timeout:
+                    print("sending")
+                    self._queuedMessaegs.remove((message, timer))
+            if self._nonAckMessage and time.time() - self._ackTimer > self._timeout:
+                self.write(self._nonAckMessage)
+                self._ackTimer = time.time()

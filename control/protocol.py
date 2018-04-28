@@ -24,4 +24,4 @@ class motor(IntEnum):
 class power(IntEnum):
     battery = "0"
     main = "1"
-    motor = "2" #object of motors
+    motor = "2"

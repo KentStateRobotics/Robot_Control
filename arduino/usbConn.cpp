@@ -21,32 +21,32 @@ void usbConn::write(String message) {
 int usbConn::readLoop(){
   if(Serial.available()){
     char recChar = Serial.read();
-    if(state != notReading && timeout < millis() - timer){
-      state = notReading;
+    if(state != readState::notReading && timeout < millis() - timer){
+      state = readState::notReading;
     }
     switch(state){
-      case reading:
+      case readState::reading:
         if(recChar == CON_CHAR){
-          state = readCon;
+          state = readState::readCon;
         }else if(bufferLoc < bufferSize){
           buffer[bufferLoc] = recChar;
           ++bufferLoc;
         } 
       break;
-      case notReading:
+      case readState::notReading:
         if(recChar == CON_CHAR){
           timer = millis();
           bufferLoc = 0;
-          state = readCheck;
+          state = readState::readCheck;
         }
       break;
-      case readCon:
-        state = reading;
+      case readState::readCon:
+        state = readState::reading;
         if(recChar == CON_CHAR) {//Control byte was escaped
           buffer[bufferLoc] = recChar;
           ++bufferLoc;
         }else if(recChar == END_CHAR){ 
-          state = notReading;
+          state = readState::notReading;
           char ack[2];
           ack[0] = CON_CHAR;
           if(checksum == calcChecksum(buffer, bufferLoc)){
@@ -60,18 +60,17 @@ int usbConn::readLoop(){
           }
           return bufferLoc;
         }else{
-          state = notReading;
+          state = readState::notReading;
         }
       break;
-      case readCheck:
-        state = reading;
+      case readState::readCheck:
+        state = readState::reading;
         checksum = recChar;
       break;
     }
   }
   return 0;
 }
-
 char usbConn::calcChecksum(const char* message, int length){
   char checksum = 0;
   for(int i = 0; i < length; ++i){

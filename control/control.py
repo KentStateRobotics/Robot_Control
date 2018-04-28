@@ -1,4 +1,5 @@
 from protocol import motor, power
+from serialConn import serialConn
 
 commandStatus = {}
 commands = {
@@ -9,6 +10,7 @@ commands = {
     motor.belt.value: None,}
 powerStatus = {}
 motorStatus = {}
+arduino = None
 
 def start():
     for key in power:
@@ -18,6 +20,10 @@ def start():
         commandStatus[key] = 0
         motorStatus[key] = 0
         powerStatus[power.motor.value][key] = 0
+    arduino = serialConn(arduinoRec)
+
+def arduinoRec(message):
+    pass
 
 def command(motors):
     for key, value in motors.items():
