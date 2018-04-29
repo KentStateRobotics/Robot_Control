@@ -1,5 +1,4 @@
 #include "usbConn.h"
-#include "motorConn.h"
 
 usbConn foo;
 void setup(){

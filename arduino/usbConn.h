@@ -1,7 +1,13 @@
-#ifndef ARDUINO_USBCONN_H_
-#define ARDUINO_USBCONN_H_
+//usbConn
+//Kent State Univeristy - RMC team
+//Jared Butcher 2018
+//
+//Implements a realable serial connection with flag bytes, checksum, and optional stop and wait acks
 
-#include "Arduino.h"
+#ifndef RMC_ARDUINO_USBCONN_H_
+#define RMC_ARDUINO_USBCONN_H_
+
+#include <Arduino.h>
 
 class usbConn{
     public:
@@ -21,8 +27,10 @@ class usbConn{
         };
         void start(int baud){ Serial.begin(baud); }; //Starts serial connection
         void start(){ start(9600); };
-        void write(const char* message, int length); //Write message to serial with flags and checksum
-        void write(String message);
+        //Write message to serial with flags and checksum
+        //escape: automaticly escape all flag bytes
+        void write(const char* message, int length, bool escape = true); 
+        void write(String message, bool escape = true);
         int readLoop(); //Run this on each iteration of loop, returns how many bytes to read out of buffer
         //if it returns 0 pass
         const char* getBuffer() { return buffer; }; //Get the buffer

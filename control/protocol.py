@@ -1,3 +1,8 @@
+#Kent State Univeristy - RMC team
+#Jared Butcher 2018
+#
+#Enums to be used for communication
+
 from enum import IntEnum, unique
 
 @unique
@@ -9,10 +14,9 @@ class field(IntEnum):
 class action(IntEnum):
     requestAll = "0"
     command = "1"
-    update = "2"
-    stop = "3"
-    error = "4"
-    auto = "5"
+    stop = "2"
+    error = "3"
+    auto = "4"
 @unique
 class motor(IntEnum):
     driveR = "0"

@@ -1,8 +1,10 @@
-from http.server import HTTPServer, SimpleHTTPRequestHandler
+from http.server import SimpleHTTPRequestHandler
+from socketserver import TCPServer 
 
 HTTP_PORT = 80
 
 def start():
-    serverAddress = ('', HTTP_PORT)
-    httpd = HTTPServer(serverAddress, SimpleHTTPRequestHandler)
-    httpd.serve_forever()
+    print("HTTP")
+    with TCPServer(('', HTTP_PORT), SimpleHTTPRequestHandler) as httpd:
+        print("Serving at: " + str(HTTP_PORT))
+        httpd.serve_forever()

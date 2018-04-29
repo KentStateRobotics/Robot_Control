@@ -69,10 +69,9 @@ const net = { //Protocall used to send / receive info
     action: {
         requestAll: 0,
         command: 1,
-        update: 2,
-        stop: 3,
-        error: 4,
-        auto: 5
+        stop: 2,
+        error: 3,
+        auto: 4
     },
     motor: {
         driveR: 0,
@@ -101,7 +100,6 @@ conn.onmessage = function (message){
     console.log(data);
     switch(data[net.field.action]){
         case net.action.command:
-        case net.action.update:
             for(var key in Object.assign(data[net.field.power], data[net.field.power][net.powerStatus.motor])){
                 powerStatus[key] = data[net.field.power][key];
             }

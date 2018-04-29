@@ -1,7 +1,7 @@
 import asyncio
 import websockets
 import json
-import control
+#import control
 from protocol import field, action, motor, power
 
 SOCK_PORT = 4242

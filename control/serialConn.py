@@ -1,3 +1,9 @@
+#Kent State Univeristy - RMC team
+#Jared Butcher 2018
+#
+#Requires pySerial library
+#Implements and reliable serial connection with flag bytes, checksum, and optional stop and wait acks 
+
 import serial
 import serial.tools.list_ports
 import threading
@@ -28,6 +34,10 @@ class serialConn():
         conReceiving = 2,
         checkReceiving = 3
 
+    class error(Exception):
+        def __init__(self, message):
+            self.message = message
+
     def __init__(self, recEvent, port=None, target="Arduino", bufferSize = 100, baud=9600, timeout=1, enableSendAck = True, enableRecAck = False):
         self.enableSendAck = enableSendAck
         self.enableRecAck = enableRecAck
@@ -43,21 +53,33 @@ class serialConn():
         self._recTimer = 0
         self._checksum = 0
         self._queuedMessaegs = []
-        if port is None:
+        if self._port is None:
             ports = serial.tools.list_ports.comports()
             for p in ports:
                 if target in p[1]:
-                    port = p[0]
+                    self._port = p[0]
                     break
+        if self._port is None:
+            print("WTF")
+            raise self.error("No port was given or found")
         threading.Thread(target=self._start).start()
-    def write(self, message, ignoreQueue = False):
+    def write(self, message, escape = True, ignoreQueue = False):
         """Sends stuff over the serial connection
         Args:
             message (str): stuff to send over serial
+            escape (bool): automaticly escape flags
             ignoreQueue (bool): ignore the write queue and dont wait for an ack
         """
-        print("send: " + message)
-        data = self.CON_CHAR + self.calcChecksum(message) + message + self.CON_CHAR + self.END_CHAR
+        check = self.calcChecksum(message)
+        if(escape):
+            i = 0
+            while True:
+                i = message.find(self.CON_CHAR, i)
+                if i == -1: break
+                message = message[:i] + self.CON_CHAR + message[i:]
+                i += 2
+        data = self.CON_CHAR + check + message + self.CON_CHAR + self.END_CHAR
+        print("Send: " + data)
         data = bytes(data, 'utf-8')
         if not ignoreQueue and self._nonAckMessage != None and self._nonAckMessage != message:
             self._queuedMessaegs.append((message, time.time()))
@@ -82,6 +104,7 @@ class serialConn():
         return chr(checksum)
     def _start(self):
         """Only for use internaly, ran at beinging of thread to start serial connection"""
+        if self._port is None: return
         with serial.Serial(self._port, self._baud, timeout=self._timeout) as self._conn:
             while self._conn.is_open:
               self._read()    
@@ -94,7 +117,7 @@ class serialConn():
             elif time.time() - self._recTimer > self._timeout:
                 self._state = self.states.notReceiving
                 if self.enableRecAck:
-                    self.write(self.CON_CHAR + self.NAK_CHAR, True)
+                    self.write(self.CON_CHAR + self.NAK_CHAR, False, True)
             else:
                 self._buffer[self._bufferLoc] = ord(char)
                 self._bufferLoc += 1
@@ -112,9 +135,10 @@ class serialConn():
                     message = self._queuedMessaegs.pop(0)
                     self._nonAckMessage = message[0]
                     self._ackTimer = time.time()
-                    self._conn.write(self._nonAckMessage)
+                    self._conn.write(self._nonAckMessage, False)
             elif self.enableSendAck and char == self.NAK_CHAR:
-                self.write(self._nonAckMessage)
+                print("NACK")
+                self.write(self._nonAckMessage, False)
                 self._ackTimer = time.time()
             elif char == self.CON_CHAR:
                 self._buffer[self._bufferLoc] = ord(char)
@@ -133,5 +157,13 @@ class serialConn():
                     print("sending")
                     self._queuedMessaegs.remove((message, timer))
             if self._nonAckMessage and time.time() - self._ackTimer > self._timeout:
-                self.write(self._nonAckMessage)
+                self.write(self._nonAckMessage, False)
                 self._ackTimer = time.time()
+'''Uncomment to use this file standalong for Network debuging
+def foo(message):
+    print(message)
+
+bar = serialConn(foo)
+while True:
+    bar.write(input())
+'''
