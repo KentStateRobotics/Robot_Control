@@ -12,10 +12,9 @@ class sockServer:
     '''
     def __init__(self, port, receiveEvent = None):
         self.port = port
-        self.recEvent = []
+        self.recEvent = receiveEvent
+        self.users = []
         loop = None
-        if receiveEvent != None:
-            self.addReceiveEvent(receiveEvent)
         recT = threading.Thread(target = self.start, args=[port])
         recT.start()
     
@@ -33,21 +32,22 @@ class sockServer:
             loop.run_until_complete(server.wait_closed())
             loop.close()
 
-    def addReceiveEvent(self, event):
-        self.recEvent.append(event)
-
-    def rmReceiveEvent(self, event):
-        self.recEvent.remove(event)
+    def send(self, data):
+        for user in self.users:
+            user.send(data)
 
     async def handle_conn(self, conn, Uri):
         print("URI: " + Uri)
-        user = client(conn)
+        user = client(conn, self.recEvent, self)
+        self.users.append(user)
         await user.beginReceiveLoop()
 
 class client:
-    def __init__(self, conn):
+    def __init__(self, conn, recEvent, sockServ):
         self.conn = conn
         self.alive = True
+        self.recEvent = recEvent
+        self.sockServ = sockServ
     async def beginReceiveLoop(self):
         while self.alive:
             try:
@@ -55,11 +55,13 @@ class client:
             except websockets.exceptions.ConnectionClosed as e:
                 self.destory()
                 break 
-            if message == "":
+            if message != "":
                 print(message)
-                data = json.loads(message)
-                for evt in self.recEvent:
-                    evt(data)
+                try:
+                    data = json.loads(message)
+                    self.recEvent(data)
+                except ValueError as e:
+                    print("JSON LOAD ERROR: " + e)
     def send(self, data):
         asyncio.get_event_loop().create_task(self._sendHelper(json.dumps(data)))
     async def _sendHelper(self, data):
@@ -70,5 +72,6 @@ class client:
             self.destory()
     def destory(self):
         self.alive = False
+        self.sockServ.users.remove(self)
         self.conn.close()
 

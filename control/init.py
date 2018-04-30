@@ -8,4 +8,5 @@ import control
 SOCK_PORT = 4242
 HTTP_PORT = 80
 
-control.start(HTTP_PORT, SOCK_PORT)
+robotContoler = control.control(HTTP_PORT, SOCK_PORT)
+

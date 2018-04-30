@@ -11,11 +11,11 @@
 
 class usbConn{
     public:
-        usbConn() : usbConn(100, true, false) {};
+        usbConn() : usbConn(200, true, false) {};
         usbConn(int bufferSize, bool enableRecAck, bool enableSendAck){
             //enableRecAck: send an ack for every received message NOT IMPLENTED
             //enableSendAck: wait for an ack after every received message NOT IMPLIMENTD
-            this->bufferSize = 100;
+            this->bufferSize = bufferSize;
             this->buffer = new char[bufferSize];
             this->enableRecAck = enableRecAck;
             this->enableSendAck = enableSendAck;

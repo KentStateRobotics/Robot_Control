@@ -7,12 +7,13 @@ var currentScene = "connect";
 var keys = [
     inputKey('forward', 'w', (req = {}) => {
         move = 'forward';
-        console.log("KEYED");
+        turn = ''
         req[net.field.motor] = makeMotorRequest(speed);
         return req;
     }),
     inputKey('reverse', 's', (req = {}) => {
         move = 'reverse';
+        turn = ''
         req[net.field.motor] = makeMotorRequest(-1 * speed);
         return req;
     }),
@@ -39,22 +40,19 @@ var keys = [
         return req;
     }),
     inputKey('speedUp', 'Shift', (req = {}) => {
-        speed = Math.min(speed + 16, 256);
-        if(turn != ''){
-            return keys.filter(x => x.name == turn)[0].event();
-        }else if(move != ''){
-            return keys.filter(x => x.name == turn)[0].event();
-        }
+        speed = Math.min(speed + 16, 255);
+        return setSpeed(speed, req)
     }),
     inputKey('speedDown', 'Control', (req = {}) => {
         speed = Math.max(speed - 16, 0);
-        if(turn != ''){
-            return keys.filter(x => x.name == turn)[0].event();
-        }else if(move != ''){
-            return keys.filter(x => x.name == turn)[0].event();
-        }
+        return setSpeed(speed, req)
     }),
-    inputKey('stop', ' ', (req = {}) => {}),
+    inputKey('stop', ' ', (req = {}) => {
+        move = '';
+        turn = '';
+        req[net.field.motor] = makeMotorRequest(0);
+        return req;
+    }),
     inputKey('aUp', 'q', (req = {}) => {}),
     inputKey('aDown', 'e', (req = {}) => {}),
     inputKey('aForward', 'r', (req = {}) => {}),
@@ -62,28 +60,28 @@ var keys = [
 ];
 const net = { //Protocall used to send / receive info
     field: {
-        action: 0,
-        motor: 1,
-        power: 2
+        action: "0",
+        motor: "1",
+        power: "2"
     },
     action: {
-        requestAll: 0,
-        command: 1,
-        stop: 2,
-        error: 3,
-        auto: 4
+        requestAll: "0",
+        command: "1",
+        stop: "2",
+        error: "3",
+        auto: "4"
     },
     motor: {
-        driveR: 0,
-        driveL: 1,
-        actPitch: 2,
-        actLower: 3,
-        belt: 4
+        driveR: "0",
+        driveL: "1",
+        actPitch: "2",
+        actLower: "3",
+        belt: "4"
     },
     powerStatus: {
-        battery: 0,
-        main: 1,
-        motor: 2
+        battery: "0",
+        main: "1",
+        motor: "2"
     }
 }
 var powerStatus = {};
@@ -96,7 +94,8 @@ var turn = '';
 //#endregion
 //#region EVENT FUNCTIONS ------------------------------------------------------------
 conn.onmessage = function (message){
-    data = JSON.parse(message);
+    console.log(message.data);
+    data = JSON.parse(message.data);
     console.log(data);
     switch(data[net.field.action]){
         case net.action.command:
@@ -126,9 +125,11 @@ document.addEventListener('keydown', (event) => {
         keyPressed.down = true;
         console.log(keyPressed['name']);
         req = {};
-        req[net.field.action] = net.action.command;
         req = keyPressed.event(req);
-        send(req);
+        if(req[net.field.motor] != null) {
+            req[net.field.action] = net.action.command;
+            send(req);
+        }
     }
 });
 document.addEventListener('keyup', (event) => {
@@ -154,7 +155,7 @@ document.addEventListener('keyup', (event) => {
                 req[net.field.motor] = makeMotorRequest(0);
             }
         }
-        if(req != {}) send(req);
+        if(req[net.field.motor] != null) send(req);
     }
 });
 //#endregion
@@ -165,7 +166,6 @@ function changeScene(scene){
     document.getElementById("control").hidden = !(scene == "control");
 }
 function start(){
-    window.setInterval(loop, 1000/60);
     for(var key in net.powerStatus){
         if(key == 'motor') continue;
         powerStatus[key] = 0;
@@ -236,25 +236,22 @@ function updateGauges(){
 function inputKey(name, key, event){
     return {'name': name, 'key': key, 'down': false, 'event': event};
 }
-function loop(){
-
-}
-function setSpeed(value){
+function setSpeed(value, req={}){
     speed = value;
-}
-function makeMotorRequest(fr, fl = null, br = null, bl = null, reqObj = {}){
-    if(fl == null){
-        fl = fr;
-        br = fr;
-        bl = fr;
-    } else if(br == null){
-        br = fr;
-        bl = bl;
+    document.getElementById('comSpeed').value = value;
+    if(turn != ''){
+        return keys.filter(x => x.name == turn)[0].event(req);
+    }else if(move != ''){
+        return keys.filter(x => x.name == move)[0].event(req);
     }
-    reqObj[net.motor.FRDrive] = fr;
-    reqObj[net.motor.FLDrive] = fl;
-    reqObj[net.motor.BRDrive] = br;
-    reqObj[net.motor.BLDrive] = bl;
+    return req;
+}
+function makeMotorRequest(right, left = null, reqObj = {}){
+    if(left == null){
+        left = right
+    }
+    reqObj[net.motor.driveR] = right;
+    reqObj[net.motor.driveL] = left;
     return reqObj;
 }
 //#endregion

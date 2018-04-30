@@ -9,105 +9,121 @@ import json
 import sockServer
 import httpServer
 
-commandStatus = {}
-powerStatus = {}
-motorStatus = {}
-arduinoConn = None
-websockServ = None
-httpServ = None
+class control:
+    def __init__(self, httpPort, sockPort):
+        self.commandStatus = {}
+        self.powerStatus = {}
+        self.motorStatus = {}
+        self.arduinoConn = None
+        self.websockServ = None
+        self.httpServ = None
+        for key in power:
+            self.powerStatus[key.value] = 0
+        self.powerStatus[power.motor.value] = {}
+        for key in motor:
+            self.commandStatus[key.value] = 0
+            self.motorStatus[key.value] = 0
+            self.powerStatus[power.motor.value][key.value] = 0
+        try:
+            self.arduinoConn = serialConn(self.arduinoRec)
+        except serialConn.error as e:
+            print(e)
+        try:
+            self.websockServ = sockServer.sockServer(sockPort, self.sockRec)
+            self.httpServ = httpServer.httpServer(httpPort)
+        except Exception as e:
+            print(e)
+        self.arduinoConn.recEventAdd(self.recDebug)
+        '''while True: #For serial debuging
+            try:
+                value = int(input())
+                data = {}
+                data[motor.actLower.value] = value
+                self.motorCommand(data)
+            except ValueError:
+                self.arduinoConn.write(json.dumps(self.getAll()))'''
 
-def start(httpPort, sockPort):
-    for key in power:
-        powerStatus[key] = 0
-    powerStatus[power.motor.value] = {}
-    for key in motor:
-        commandStatus[key] = 0
-        motorStatus[key] = 0
-        powerStatus[power.motor.value][key] = 0
-    try:
-        arduino = serialConn(arduinoRec)
-    except serialConn.error as e:
-        print(e)
-    try:
-        websockServ = sockServer.sockServer(sockPort, sockRec)
-        httpServ = httpServer.httpServer(httpPort)
-    except Exception as e:
-        print(e)
-    
+    def recDebug(self, message):
+        print("received: " + json.dumps(message))
 
-def arduinoRec(message):
-    if field.action.value in message:
-        if message[field.action.value] == action.requestAll.value:
-            data = {}
-            data[field.action.value] = action.command.value
-            data[field.motor.value] = motorStatus
-            arduinoConn.write(json.dumps(data))
-        elif message[field.action.value] == action.command.value:
-            if field.power.value in message and len(message[field.power.value]) > 0:
-                powerCommand(message[field.motors.value])
-        elif message[field.action.value] == action.stop.value:
-            stop()
-        elif message[field.action.value] == action.auto.value:
-            auto()
-        elif message[field.action.value] == action.error.value:
-            pass
+    def arduinoRec(self, message):
+        if field.action.value in message:
+            if message[field.action.value] == action.requestAll.value:
+                data = {}
+                data[field.action.value] = action.command.value
+                data[field.motor.value] = self.commandStatus
+                self.arduinoConn.write(json.dumps(data))
+            elif message[field.action.value] == action.command.value:
+                if field.power.value in message and len(message[field.power.value]) > 0:
+                    self.powerCommand(message[field.motors.value])
+                if field.motor.value in message and len(message[field.motor.value]) > 0: #For motor feedback
+                    pass
+            elif message[field.action.value] == action.stop.value:
+                self.stop()
+            elif message[field.action.value] == action.auto.value:
+                self.auto()
+            elif message[field.action.value] == action.error.value:
+                pass
 
-def sockRec(message):
-    if field.action.value in message:
-        if message[field.action.value] == action.requestAllvalue:
-            websockServ.send(getAll())
-        elif message[field.action.value] == action.command.value:
-            if field.motors.value in message and len(message[field.motors.value]) > 0:
-                motorCommand(message[field.motors.value])
-        elif message[field.action.value] == action.stop.value:
-            stop()
-        elif message[field.action.value] == action.auto.value:
-            auto()
-        elif message[field.action.value] == action.error.value:
-            pass
+    def sockRec(self, message):
+        if field.action.value in message:
+            print("Str")
+            if message[field.action.value] == action.requestAll.value:
+                self.websockServ.send(self.getAll())
+            elif message[field.action.value] == action.command.value:
+                print("motors")
+                if field.motor.value in message and len(message[field.motor.value]) > 0:
+                    print("command")
+                    self.motorCommand(message[field.motor.value])
+            elif message[field.action.value] == action.stop.value:
+                self.stop()
+            elif message[field.action.value] == action.auto.value:
+                self.auto()
+            elif message[field.action.value] == action.error.value:
+                pass
 
-def motorCommand(motors):
-    message = {}
-    message[field.action.value] = field.command.value
-    message[field.motor.value] = {}
-    for key, value in motors.items():
-        commandStatus[key] = value
-        message[key] = value
-    arduinoConn.write(json.dumps(message))
+    def motorCommand(self, motors):
+        message = {}
+        message[field.action.value] = action.command.value
+        message[field.motor.value] = {}
+        for key, value in motors.items():
+            self.commandStatus[key] = value
+            message[field.motor.value][key] = value
+        self.arduinoConn.write(json.dumps(message))
 
-def powerCommand(powers):
-    message = {}
-    message[field.action.value] = action.command.value
-    message[field.power.value] = {}
-    for key, value in powers.items():
-        if(key == power.motor.value):
-            message[field.power.value][power.motor.value] = {}
-            for mKey, mValue in powers[power.motor.value]:
-                powerStatus[power.motor.value][mKey] = mValue
-                message[field.power.value][power.motor.value][mKye] = mValue
-        else:
-            powerStatus[mKey] = mValue
-            message[field.power.value][mKye] = mValue
-    websockServ.send(message)
-    
-def stop():
-    message = {}
-    message[field.action.value] = action.stop.value
-    arduinoConn.write(json.dumps(message))
-    websockServ.send(message)
-    for key in motor:
-        commandStatus[key] = 0
-    
+    def powerCommand(self, powers):
+        message = {}
+        message[field.action.value] = action.command.value
+        message[field.power.value] = {}
+        for key, value in powers.items():
+            if(key == power.motor.value):
+                message[field.power.value][power.motor.value] = {}
+                for mKey, mValue in powers[power.motor.value]:
+                    self.powerStatus[power.motor.value][mKey] = mValue
+                    message[field.power.value][power.motor.value][mKye] = mValue
+            else:
+                self.powerStatus[mKey] = mValue
+                message[field.power.value][mKye] = mValue
+        self.websockServ.send(message)
+        
+    def stop(self):
+        message = {}
+        message[field.action.value] = action.stop.value
+        self.arduinoConn.write(json.dumps(message))
+        self.websockServ.send(message)
+        for key in motor:
+            self.commandStatus[key.value] = 0
+        
 
-def auto():
-    message = {}
-    message[field.action.value] = action.auto.value
-    websockServ.send(message)
-    arduinoConn.write(json.dumps(message))
+    def auto(self):
+        message = {}
+        message[field.action.value] = action.auto.value
+        self.websockServ.send(message)
+        self.arduinoConn.write(json.dumps(message))
 
-def getAll():
-    data = {}
-    data[field.action.value] = action.command.value
-    data[field.motor.value] = motorStatus
-    data[field.power.value] = powerStatus
-    return data
+    def getAll(self):
+        data = {}
+        data[field.action.value] = action.command.value
+        data[field.motor.value] = self.motorStatus
+        data[field.power.value] = self.powerStatus
+        return data

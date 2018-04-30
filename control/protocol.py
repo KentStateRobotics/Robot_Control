@@ -3,29 +3,29 @@
 #
 #Enums to be used for communication
 
-from enum import IntEnum, unique
+from enum import Enum, unique
 
 @unique
-class field(IntEnum):
+class field(Enum):
     action = "0"
     motor = "1"
     power = "2"
 @unique
-class action(IntEnum):
+class action(Enum):
     requestAll = "0"
     command = "1"
     stop = "2"
     error = "3"
     auto = "4"
 @unique
-class motor(IntEnum):
+class motor(Enum):
     driveR = "0"
     driveL = "1"
     actPitch = "2"
     actLower = "3"
     belt = "4"
 @unique
-class power(IntEnum):
+class power(Enum):
     battery = "0"
     main = "1"
     motor = "2"

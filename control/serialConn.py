@@ -39,7 +39,7 @@ class serialConn():
         def __init__(self, message):
             self.message = message
 
-    def __init__(self, recEvent=None, port=None, target="Arduino", bufferSize = 100, baud=9600, timeout=1, enableSendAck = True, enableRecAck = False):
+    def __init__(self, recEvent=None, port=None, target="Arduino", bufferSize = 200, baud=9600, timeout=1, enableSendAck = True, enableRecAck = False):
         self.enableSendAck = enableSendAck
         self.enableRecAck = enableRecAck
         self._port = port
@@ -48,8 +48,9 @@ class serialConn():
         self._buffer = bytearray(bufferSize)
         self._bufferLoc = 0
         self._state = self.states.notReceiving
+        self._recEvent = []
         if recEvent != None:
-            self._recEvent = recEvent
+            self._recEvent.append(recEvent)
         self._nonAckMessage = None
         self._ackTimer = 0
         self._recTimer = 0
@@ -133,7 +134,7 @@ class serialConn():
                 if data != '':
                     message = json.loads(data)
                     for evt in self._recEvent:
-                        self._recEvent(message)
+                        evt(message)
                 self._state = self.states.notReceiving
             elif self.enableSendAck and char == self.ACK_CHAR:
                 if len(self._queuedMessaegs) == 0:
@@ -167,10 +168,10 @@ class serialConn():
                 self.write(self._nonAckMessage, False)
                 self._ackTimer = time.time()
 
-    def recEventAdd(event):
+    def recEventAdd(self, event):
         self._recEvent.append(event)
 
-    def recEventRemove(event):
+    def recEventRemove(self, event):
         self._recEvent.remove(event)
 
 
