@@ -23,17 +23,17 @@ namespace protocol{
         error = '3', //error
         autoRun = '4', //currently unused
     };
-    enum class motor: char { //List of motors and their settings
+    enum class motor: char { //Object of motors and their settings
         driveR = '0',
         driveL = '1',
         actPitch = '2',
         actLower = '3',
         belt = '4',
     };
-    enum class power: char { //List of current sensors and their readings
-        battery = '0',
+    enum class power: char { //Object of current/voltage sensors and their readings
+        battery = '0', //voltage
         main = '1',
-        motor = '2',
+        motor = '2', //Object of motors for each currnet motor's current sensor
     };
 };
 

@@ -1,13 +1,11 @@
 #Kent State Univeristy - RMC team
 #Jared Butcher 2018
 #
-#Lanches threads and starts program
-import httpServer
-import sockServer
+#Starts program
+
 import control
-import threading
-httpT = threading.Thread(target = httpServer.start)
-sockT = threading.Thread(target = sockServer.start)
-httpT.start()
-sockT.start()
-control.start()
+
+SOCK_PORT = 4242
+HTTP_PORT = 80
+
+control.start(HTTP_PORT, SOCK_PORT)

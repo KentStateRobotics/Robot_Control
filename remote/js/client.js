@@ -83,7 +83,7 @@ const net = { //Protocall used to send / receive info
     powerStatus: {
         battery: 0,
         main: 1,
-        motor: 2 //object of motors
+        motor: 2
     }
 }
 var powerStatus = {};

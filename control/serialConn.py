@@ -8,6 +8,7 @@ import serial
 import serial.tools.list_ports
 import threading
 import time
+import json
 from enum import IntEnum, unique
 
 class serialConn():
@@ -38,7 +39,7 @@ class serialConn():
         def __init__(self, message):
             self.message = message
 
-    def __init__(self, recEvent, port=None, target="Arduino", bufferSize = 100, baud=9600, timeout=1, enableSendAck = True, enableRecAck = False):
+    def __init__(self, recEvent=None, port=None, target="Arduino", bufferSize = 100, baud=9600, timeout=1, enableSendAck = True, enableRecAck = False):
         self.enableSendAck = enableSendAck
         self.enableRecAck = enableRecAck
         self._port = port
@@ -47,7 +48,8 @@ class serialConn():
         self._buffer = bytearray(bufferSize)
         self._bufferLoc = 0
         self._state = self.states.notReceiving
-        self._recEvent = recEvent
+        if recEvent != None:
+            self._recEvent = recEvent
         self._nonAckMessage = None
         self._ackTimer = 0
         self._recTimer = 0
@@ -60,9 +62,9 @@ class serialConn():
                     self._port = p[0]
                     break
         if self._port is None:
-            print("WTF")
             raise self.error("No port was given or found")
         threading.Thread(target=self._start).start()
+
     def write(self, message, escape = True, ignoreQueue = False):
         """Sends stuff over the serial connection
         Args:
@@ -89,6 +91,7 @@ class serialConn():
             self._nonAckMessage = message
             self._ackTimer = time.time()
             self._conn.write(data)
+
     def calcChecksum(self, data):
         """Creates a one byte checksum from each byte in input
         Args:
@@ -102,12 +105,14 @@ class serialConn():
         for i in range(len(data)):
             checksum ^= data[i]
         return chr(checksum)
+
     def _start(self):
         """Only for use internaly, ran at beinging of thread to start serial connection"""
         if self._port is None: return
         with serial.Serial(self._port, self._baud, timeout=self._timeout) as self._conn:
             while self._conn.is_open:
               self._read()    
+
     def _read(self):
         """Only for use internaly, ran in thead to read and process input"""
         char = str(self._conn.read().decode("utf-8"))
@@ -126,7 +131,9 @@ class serialConn():
             if char == self.END_CHAR:
                 data = str(self._buffer[0:self._bufferLoc].decode('utf-8'))
                 if data != '':
-                    self._recEvent(data)
+                    message = json.loads(data)
+                    for evt in self._recEvent:
+                        self._recEvent(message)
                 self._state = self.states.notReceiving
             elif self.enableSendAck and char == self.ACK_CHAR:
                 if len(self._queuedMessaegs) == 0:
@@ -159,6 +166,14 @@ class serialConn():
             if self._nonAckMessage and time.time() - self._ackTimer > self._timeout:
                 self.write(self._nonAckMessage, False)
                 self._ackTimer = time.time()
+
+    def recEventAdd(event):
+        self._recEvent.append(event)
+
+    def recEventRemove(event):
+        self._recEvent.remove(event)
+
+
 '''Uncomment to use this file standalong for Network debuging
 def foo(message):
     print(message)
