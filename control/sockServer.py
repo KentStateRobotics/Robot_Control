@@ -19,22 +19,23 @@ class sockServer:
         recT.start()
     
     def start(self, port):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
         try:
-            coro = websockets.server.serve(self.handle_conn, host='', port=port, loop=loop)
-            server = loop.run_until_complete(coro)
+            coro = websockets.server.serve(self.handle_conn, host='', port=port, loop=self.loop)
+            server = self.loop.run_until_complete(coro)
         except OSError:
-            print("close")
+            print("Socket OSError, closeing")
         else:
-            loop.run_forever()
+            self.loop.run_forever()
             server.close()
-            loop.run_until_complete(server.wait_closed())
-            loop.close()
+            self.loop.run_until_complete(server.wait_closed())
+            self.loop.close()
 
     def send(self, data):
+        message = json.dumps(data)
         for user in self.users:
-            user.send(data)
+            asyncio.run_coroutine_threadsafe(user.send(message), self.loop)
 
     async def handle_conn(self, conn, Uri):
         print("URI: " + Uri)
@@ -56,16 +57,15 @@ class client:
                 self.destory()
                 break 
             if message != "":
-                print(message)
+                print("Socket Received: " + message)
                 try:
                     data = json.loads(message)
                     self.recEvent(data)
                 except ValueError as e:
                     print("JSON LOAD ERROR: " + e)
-    def send(self, data):
-        asyncio.get_event_loop().create_task(self._sendHelper(json.dumps(data)))
-    async def _sendHelper(self, data):
+    async def send(self, data):
         try:
+            print("Socket Send: " + data)
             await self.conn.send(data)
         except websockets.exceptions.ConnectionClosed as e:
             print(e)

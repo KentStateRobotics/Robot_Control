@@ -78,13 +78,13 @@ const net = { //Protocall used to send / receive info
         actLower: "3",
         belt: "4"
     },
-    powerStatus: {
+    power: {
         battery: "0",
         main: "1",
         motor: "2"
     }
 }
-var powerStatus = {};
+var power = {};
 var motorStatus = {};
 var gauges = {};
 var speed = 0;
@@ -94,18 +94,28 @@ var turn = '';
 //#endregion
 //#region EVENT FUNCTIONS ------------------------------------------------------------
 conn.onmessage = function (message){
-    console.log(message.data);
+    console.log("REC: " + message.data);
     data = JSON.parse(message.data);
-    console.log(data);
     switch(data[net.field.action]){
         case net.action.command:
-            for(var key in Object.assign(data[net.field.power], data[net.field.power][net.powerStatus.motor])){
-                powerStatus[key] = data[net.field.power][key];
+            if(data[net.field.power]){
+                for(var key in data[net.field.power]){
+                    power[key] = data[net.field.power][key];
+                    console.log(power);
+                }
+                if(data[net.field.power][net.power.motor]){
+                    for(var key in data[net.field.power][net.power.motor]){
+                        power[net.field.power][net.power.motor][key] = data[net.field.power][net.power.motor][key];
+                        console.log(power);
+                    }
+                }
+                updateGauges();
             }
-            for(var key in data[net.field.motor]){
-                motorStatus[key] = data[net.field.motor][key];
+            if(data[net.field.motor]){
+                for(var key in data[net.field.motor]){
+                    motorStatus[key] = data[net.field.motor][key];
+                }
             }
-            updateGauges();
         break;
     }
 }
@@ -166,14 +176,19 @@ function changeScene(scene){
     document.getElementById("control").hidden = !(scene == "control");
 }
 function start(){
-    for(var key in net.powerStatus){
-        if(key == 'motor') continue;
-        powerStatus[key] = 0;
+    for(var key in Object.values(net.power)){
+        console.log(key);
+        if(key == net.power.motor) {
+            power[key] = {};
+        }else{
+            power[key] = 0;
+        }
     }
-    for(var key in net.motor){
+    for(var key in Object.values(net.motor)){
         motorStatus[key] = 0;
+        power[net.power.motor][key] = 0;
     }
-    Object.assign(powerStatus, motorStatus);
+    //Base Gauge options
     var opts = {
         angle: 0.0, // The span of the gauge arc
         lineWidth: 0.3, // The line thickness
@@ -190,16 +205,18 @@ function start(){
         generateGradient: true,
         highDpiSupport: true,     // High resolution support
     };
+    //Create motor amp gauges in html
     for(var key in net.motor){
         document.getElementById("gauges").innerHTML += '<div><canvas id="'+key+'Gauge"></canvas><p id="'+key+'Text">Motor</p></div>'
     }
     temp = {};
-    for(var key in powerStatus){
-        console.log(key)
+    //Config motor gaguges and put them in gauges object
+    for(var key in net.power){
+        if(key == 'motor') continue;
         var target = document.getElementById(key + 'Gauge');
         if(key == "battery"){
             opts.percentColors = [[0.0, "#FF0000" ], [1.0, "#00FF00"]];
-        } else {
+        }else{
             opts.percentColors = [[0.0, "#00FF00" ], [1.0, "#FF0000"]];
         }
         var gauge = new Gauge(target).setOptions(opts);
@@ -208,16 +225,22 @@ function start(){
             gauge.maxValue = 16;
         } else if(key == "main"){
             gauge.maxValue = 10;
-        } else {
-            gauge.maxValue = 5;
         }
+        gauges[key] = gauge;
+    }
+    for(var key in net.motor){
+        var target = document.getElementById(key + 'Gauge');
+        opts.percentColors = [[0.0, "#00FF00" ], [1.0, "#FF0000"]];
+        var gauge = new Gauge(target).setOptions(opts);
+        gauge.maxValue = 5;
         gauges[key] = gauge;
     }
     updateGauges();
 }
-function send(message){
-    console.log(message);
-    conn.send(JSON.stringify(message));
+function send(data){
+    message = JSON.stringify(data)
+    console.log("Sending: " + message);
+    conn.send(message);
 }
 function connect(){
     ip = document.getElementById("ipBox").value;
@@ -225,12 +248,17 @@ function connect(){
     conn = new WebSocket("ws://" + ip + ':' + SOCKET_PORT);
 }
 function updateGauges(){
-    for(var key in gauges){
-        gauges[key].set(powerStatus[key]);
-        document.getElementById(key + 'Text').innerText = key + ": " + powerStatus[key] + " amps";
+    for(var key in net.power){
+        if(key == 'motor') continue;
+        gauges[key].set(power[net.power[key]]);
+        document.getElementById(key + 'Text').innerText = key + ": " + power[net.power[key]] + " amps";
         if(key == 'battery'){
-            document.getElementById(key + 'Text').innerText = key + ": " + powerStatus[key] + " volts";
+            document.getElementById(key + 'Text').innerText = key + ": " + power[net.power[key]] + " volts";
         }
+    }
+    for(var key in net.motor){
+        gauges[key].set(power[net.power.motor][net.motor[key]]);
+        document.getElementById(key + 'Text').innerText = key + ": " + power[net.power.motor][net.motor[key]] + " amps";
     }
 }
 function inputKey(name, key, event){

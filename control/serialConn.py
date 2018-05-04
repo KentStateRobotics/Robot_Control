@@ -82,7 +82,7 @@ class serialConn():
                 message = message[:i] + self.CON_CHAR + message[i:]
                 i += 2
         data = self.CON_CHAR + check + message + self.CON_CHAR + self.END_CHAR
-        print("Send: " + data)
+        print("Serial Send: " + data)
         data = bytes(data, 'utf-8')
         if not ignoreQueue and self._nonAckMessage != None and self._nonAckMessage != message:
             self._queuedMessaegs.append((message, time.time()))

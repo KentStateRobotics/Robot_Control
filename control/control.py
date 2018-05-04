@@ -33,8 +33,21 @@ class control:
             self.httpServ = httpServer.httpServer(httpPort)
         except Exception as e:
             print(e)
-        self.arduinoConn.recEventAdd(self.recDebug)
-        '''while True: #For serial debuging
+        '''
+        while True: #For sending socket and gauge debuging
+            value = float(input())
+            message = {}
+            message[field.action.value] = action.command.value
+            message[field.power.value] = {}
+            message[field.power.value][power.battery.value] = value * 6
+            message[field.power.value][power.motor.value] = {}
+            for key in motor:
+                message[field.power.value][power.motor.value][key.value] = value;
+            message[field.power.value][power.main.value] = value * 5
+            self.arduinoRec(message)
+        '''
+        '''self.arduinoConn.recEventAdd(self.recDebug)
+        while True: #For serial debuging
             try:
                 value = int(input())
                 data = {}
@@ -55,7 +68,7 @@ class control:
                 self.arduinoConn.write(json.dumps(data))
             elif message[field.action.value] == action.command.value:
                 if field.power.value in message and len(message[field.power.value]) > 0:
-                    self.powerCommand(message[field.motors.value])
+                    self.powerCommand(message[field.power.value])
                 if field.motor.value in message and len(message[field.motor.value]) > 0: #For motor feedback
                     pass
             elif message[field.action.value] == action.stop.value:
@@ -67,13 +80,10 @@ class control:
 
     def sockRec(self, message):
         if field.action.value in message:
-            print("Str")
             if message[field.action.value] == action.requestAll.value:
                 self.websockServ.send(self.getAll())
             elif message[field.action.value] == action.command.value:
-                print("motors")
                 if field.motor.value in message and len(message[field.motor.value]) > 0:
-                    print("command")
                     self.motorCommand(message[field.motor.value])
             elif message[field.action.value] == action.stop.value:
                 self.stop()
@@ -98,12 +108,12 @@ class control:
         for key, value in powers.items():
             if(key == power.motor.value):
                 message[field.power.value][power.motor.value] = {}
-                for mKey, mValue in powers[power.motor.value]:
+                for mKey, mValue in powers[power.motor.value].items():
                     self.powerStatus[power.motor.value][mKey] = mValue
-                    message[field.power.value][power.motor.value][mKye] = mValue
+                    message[field.power.value][power.motor.value][mKey] = mValue
             else:
-                self.powerStatus[mKey] = mValue
-                message[field.power.value][mKye] = mValue
+                self.powerStatus[key] = value
+                message[field.power.value][key] = value
         self.websockServ.send(message)
         
     def stop(self):
