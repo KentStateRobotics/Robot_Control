@@ -88,9 +88,38 @@ var power = {};
 var motorStatus = {};
 var gauges = {};
 var speed = 0;
+var gamepadLoopRunning = false;
 //Remember what command the robot is being given
 var move = '';
 var turn = '';
+var state3dMouse = {
+	buttons: {
+		0: false,
+		1: false,
+	},
+	axes: {
+		0:0,
+		1:0,
+		2:0,
+		3:0,
+		4:0,
+		5:0,
+	}
+}
+buttonMap3dMouse = {
+	axes: {
+		right: 0,
+		backward: 1,
+		down: 2,
+		pitch: 3, //up(pull) +, down(push) -
+		roll: 4, //clockwise +, counter -
+		yaw: 5, //clockwise +, counter -
+	},
+	buttons: {
+		left: 0,
+		right: 1,
+	}
+}
 //#endregion
 //#region EVENT FUNCTIONS ------------------------------------------------------------
 conn.onmessage = function (message){
@@ -101,12 +130,10 @@ conn.onmessage = function (message){
             if(data[net.field.power]){
                 for(var key in data[net.field.power]){
                     power[key] = data[net.field.power][key];
-                    console.log(power);
                 }
                 if(data[net.field.power][net.power.motor]){
                     for(var key in data[net.field.power][net.power.motor]){
                         power[net.field.power][net.power.motor][key] = data[net.field.power][net.power.motor][key];
-                        console.log(power);
                     }
                 }
                 updateGauges();
@@ -168,6 +195,10 @@ document.addEventListener('keyup', (event) => {
         if(req[net.field.motor] != null) send(req);
     }
 });
+window.addEventListener("gamepadconnected", function(e) {
+	console.log("Gamepad connected");
+	
+});
 //#endregion
 //#region FUNCTIONS -----------------------------------------------------------------
 function changeScene(scene){
@@ -177,7 +208,6 @@ function changeScene(scene){
 }
 function start(){
     for(var key in Object.values(net.power)){
-        console.log(key);
         if(key == net.power.motor) {
             power[key] = {};
         }else{
@@ -281,6 +311,32 @@ function makeMotorRequest(right, left = null, reqObj = {}){
     reqObj[net.motor.driveR] = right;
     reqObj[net.motor.driveL] = left;
     return reqObj;
+}
+function startGamepadLoop(){
+    if(!gamepadLoopRunning){
+        gamepadLoopRunning = true;
+        gamepadLoop();
+    } 
+}
+function gamepadLoop(){
+    let gamepads = navigator.getGamepads ? navigator.getGamepads() : navigator.webkitGetGamepads;
+	for(let g = 0; g < gamepads.length; ++g){
+        if(gamepads[g].id == "Whatever the 3d mouse is ided as"){
+            for(let i = 0; i < 8; ++i){
+                if(state3dMouse.axes[i] > gamepad.axes[i] && gamepad.axes[i] < -.1 || state3dMouse.axes[i] < gamepad.axes[i] && gamepad.axes[i] > .1){
+                    state3dMouse.axes[i] = gamepad.axes[i];
+                    console.log(Object.keys(buttonMap3dMOuse.axes)[i] + ": " + state3dMouse.axes[i]);
+                }
+            }
+            for(let i = 0; i < 2; ++i){
+                if(state3dMouse.buttons[i] != gamepad.buttons[i].pressed){
+                    state3dMouse.buttons[i] = gamepad.buttons[i].pressed;
+                    console.log(Object.keys(buttonMap3dMOuse.buttons)[i] + ": " + state3dMouse.buttons[i]);
+                }
+            }
+        }
+    }
+	if(gamepadLoopRunning) requestAnimationFrame(loop);
 }
 //#endregion
 start();
