@@ -1,4 +1,5 @@
-from http.server import HTTPServer, SimpleHTTPRequestHandler
+from http.server import SimpleHTTPRequestHandler
+from socketserver import TCPServer
 import threading
 
 class httpServer:
@@ -9,9 +10,9 @@ class httpServer:
         self.httpT.start()
 
     def start(self, port):
-        with HTTPServer(('', port), SimpleHTTPRequestHandler) as self.httpS:
-            print("Serving at: " + str(port))
-            self.httpS.serve_forever()
+        self.httpS = TCPServer(('', port), SimpleHTTPRequestHandler)
+        print("Serving at: " + str(port))
+        self.httpS.serve_forever()
 
     def stop(self):
         if self.httpS != None:

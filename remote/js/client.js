@@ -1,7 +1,6 @@
 //#region GLOBAL VARS AND CONSTS---------------------------------------------------------------
-var ip = document.location.hostname;
+var ip = document.location.hostname || 'localhost';
 const SOCKET_PORT = 4242;
-var conn = new WebSocket("ws://" + document.location.hostname + ':' + SOCKET_PORT);
 document.getElementById("ipBox").value = ip;
 var currentScene = "connect";
 var keys = [
@@ -122,39 +121,7 @@ buttonMap3dMouse = {
 }
 //#endregion
 //#region EVENT FUNCTIONS ------------------------------------------------------------
-conn.onmessage = function (message){
-    console.log("REC: " + message.data);
-    data = JSON.parse(message.data);
-    switch(data[net.field.action]){
-        case net.action.command:
-            if(data[net.field.power]){
-                for(var key in data[net.field.power]){
-                    power[key] = data[net.field.power][key];
-                }
-                if(data[net.field.power][net.power.motor]){
-                    for(var key in data[net.field.power][net.power.motor]){
-                        power[net.field.power][net.power.motor][key] = data[net.field.power][net.power.motor][key];
-                    }
-                }
-                updateGauges();
-            }
-            if(data[net.field.motor]){
-                for(var key in data[net.field.motor]){
-                    motorStatus[key] = data[net.field.motor][key];
-                }
-            }
-        break;
-    }
-}
-conn.onopen = function (){
-    changeScene("control");
-    req = {}
-    req[net.field.action] = net.action.requestAll;
-    send(req);
-}
-conn.onclose = function (){
-    changeScene("connect")
-}
+
 document.addEventListener('keydown', (event) => {
     var keyPressed = keys.filter((k) => k.key == event.key)[0];
     if(keyPressed != null && currentScene == "control" && keyPressed.down == false){
@@ -196,8 +163,8 @@ document.addEventListener('keyup', (event) => {
     }
 });
 window.addEventListener("gamepadconnected", function(e) {
-	console.log("Gamepad connected");
-	
+    console.log("Gamepad connected");
+    startGamepadLoop();
 });
 //#endregion
 //#region FUNCTIONS -----------------------------------------------------------------
@@ -207,6 +174,7 @@ function changeScene(scene){
     document.getElementById("control").hidden = !(scene == "control");
 }
 function start(){
+    connect();
     for(var key in Object.values(net.power)){
         if(key == net.power.motor) {
             power[key] = {};
@@ -266,6 +234,9 @@ function start(){
         gauges[key] = gauge;
     }
     updateGauges();
+    if(!conn){
+        changeScene('connect');
+    }
 }
 function send(data){
     message = JSON.stringify(data)
@@ -276,6 +247,39 @@ function connect(){
     ip = document.getElementById("ipBox").value;
     console.log(ip);
     conn = new WebSocket("ws://" + ip + ':' + SOCKET_PORT);
+    conn.onmessage = function (message){
+        console.log("REC: " + message.data);
+        data = JSON.parse(message.data);
+        switch(data[net.field.action]){
+            case net.action.command:
+                if(data[net.field.power]){
+                    for(var key in data[net.field.power]){
+                        power[key] = data[net.field.power][key];
+                    }
+                    if(data[net.field.power][net.power.motor]){
+                        for(var key in data[net.field.power][net.power.motor]){
+                            power[net.field.power][net.power.motor][key] = data[net.field.power][net.power.motor][key];
+                        }
+                    }
+                    updateGauges();
+                }
+                if(data[net.field.motor]){
+                    for(var key in data[net.field.motor]){
+                        motorStatus[key] = data[net.field.motor][key];
+                    }
+                }
+            break;
+        }
+    }
+    conn.onopen = function (){
+        changeScene("control");
+        req = {}
+        req[net.field.action] = net.action.requestAll;
+        send(req);
+    }
+    conn.onclose = function (){
+        changeScene("connect")
+    }
 }
 function updateGauges(){
     for(var key in net.power){
@@ -322,16 +326,43 @@ function gamepadLoop(){
     let gamepads = navigator.getGamepads ? navigator.getGamepads() : navigator.webkitGetGamepads;
 	for(let g = 0; g < gamepads.length; ++g){
         if(gamepads[g].id == "Whatever the 3d mouse is ided as"){
+            let req = {right: 0, left: 0};
             for(let i = 0; i < 8; ++i){
                 if(state3dMouse.axes[i] > gamepad.axes[i] && gamepad.axes[i] < -.1 || state3dMouse.axes[i] < gamepad.axes[i] && gamepad.axes[i] > .1){
                     state3dMouse.axes[i] = gamepad.axes[i];
-                    console.log(Object.keys(buttonMap3dMOuse.axes)[i] + ": " + state3dMouse.axes[i]);
+                    if(state3dMouse.axes[i] < .1 && state3dMouse.axes[i] > -.1){
+                        state3dMouse.axes[i] = 0;
+                    }
+                    console.log(Object.keys(buttonMap3dMouse.axes)[i] + ": " + state3dMouse.axes[i]);
+                    switch(i){
+                        case buttonMap3dMouse.axes.backward: //TODO incase of turn
+                            req.right = state3dMouse[i] * -128;
+                            req.left = state3dMouse[i] * -128;
+                        break;
+                        case buttonMap3dMouse.axes.right:
+                        break;
+                        case buttonMap3dMouse.axes.down:
+                        break;
+                        case buttonMap3dMouse.axes.pitch:
+                        break;
+                        case buttonMap3dMouse.axes.roll:
+                            if(state3dMouse[buttonMap3dMouse.axes.backward] != 0){
+                                req.right = state3dMouse[buttonMap3dMouse.axes.backward] * -128 - state3dMouse[i] * 64;
+                                req.left = state3dMouse[buttonMap3dMouse.axes.backward] * -128 - state3dMouse[i] * -64;
+                            }else{
+                                req.right = state3dMouse[i] * -64;
+                                req.left = state3dMouse[i] * 64;
+                            }
+                        break;
+                        case buttonMap3dMouse.axes.yaw:
+                        break;
+                    }
                 }
             }
             for(let i = 0; i < 2; ++i){
                 if(state3dMouse.buttons[i] != gamepad.buttons[i].pressed){
                     state3dMouse.buttons[i] = gamepad.buttons[i].pressed;
-                    console.log(Object.keys(buttonMap3dMOuse.buttons)[i] + ": " + state3dMouse.buttons[i]);
+                    console.log(Object.keys(buttonMap3dMouse.buttons)[i] + ": " + state3dMouse.buttons[i]);
                 }
             }
         }

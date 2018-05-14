@@ -115,7 +115,7 @@ class control:
                 self.powerStatus[key] = value
                 message[field.power.value][key] = value
         self.websockServ.send(message)
-        
+
     def stop(self):
         message = {}
         message[field.action.value] = action.stop.value
@@ -123,7 +123,6 @@ class control:
         self.websockServ.send(message)
         for key in motor:
             self.commandStatus[key.value] = 0
-        
 
     def auto(self):
         message = {}
