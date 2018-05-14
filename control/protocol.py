@@ -21,8 +21,8 @@ class action(Enum):
 class motor(Enum):
     driveR = "0"
     driveL = "1"
-    actPitch = "2"
-    actLower = "3"
+    actWrist = "2"
+    actElbow = "3"
     belt = "4"
 @unique
 class power(Enum):

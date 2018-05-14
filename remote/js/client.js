@@ -8,12 +8,16 @@ var keys = [
         move = 'forward';
         turn = ''
         req[net.field.motor] = makeMotorRequest(speed);
+        buttonClick();
+        document.getElementById('butForward').style.backgroundColor = 'gray';
         return req;
     }),
     inputKey('reverse', 's', (req = {}) => {
         move = 'reverse';
         turn = ''
         req[net.field.motor] = makeMotorRequest(-1 * speed);
+        buttonClick();
+        document.getElementById('butReverse').style.backgroundColor = 'gray';
         return req;
     }),
     inputKey('right', 'd', (req = {}) => {
@@ -25,6 +29,8 @@ var keys = [
         }else{
             req[net.field.motor] = makeMotorRequest(speed + 32, speed);
         }
+        buttonClick();
+        document.getElementById('butRight').style.backgroundColor = 'gray';
         return req;
     }),
     inputKey('left', 'a', (req = {}) => {
@@ -36,6 +42,8 @@ var keys = [
         }else{
             req[net.field.motor] = makeMotorRequest(speed, speed + 32);
         }
+        buttonClick();
+        document.getElementById('butLeft').style.backgroundColor = 'gray';
         return req;
     }),
     inputKey('speedUp', 'Shift', (req = {}) => {
@@ -50,6 +58,7 @@ var keys = [
         move = '';
         turn = '';
         req[net.field.motor] = makeMotorRequest(0);
+        buttonClick();
         return req;
     }),
     inputKey('aUp', 'q', (req = {}) => {}),
@@ -73,8 +82,8 @@ const net = { //Protocall used to send / receive info
     motor: {
         driveR: "0",
         driveL: "1",
-        actPitch: "2",
-        actLower: "3",
+        actWrist: "2",
+        actElbow: "3",
         belt: "4"
     },
     power: {
@@ -86,6 +95,7 @@ const net = { //Protocall used to send / receive info
 var power = {};
 var motorStatus = {};
 var gauges = {};
+var buttons = [];
 var speed = 0;
 var gamepadLoopRunning = false;
 //Remember what command the robot is being given
@@ -182,6 +192,44 @@ function start(){
             power[key] = 0;
         }
     }
+    buttons = [
+        {
+            button: document.getElementById('butStop'),
+            evt: (req) => {
+                req[net.field.motor] = makeMotorRequest(0);
+                document.getElementById('butStop').style.backgroundColor = '';
+                return req;
+            }
+        },
+        {
+            button: document.getElementById('butForward'),
+            evt: (req) => {
+                req[net.field.motor] = makeMotorRequest(speed);
+                return req;
+            }
+        },
+        {
+            button: document.getElementById('butReverse'),
+            evt: (req) => {
+                req[net.field.motor] = makeMotorRequest(speed * -1);
+                return req;
+            }
+        },
+        {
+            button: document.getElementById('butRight'),
+            evt: (req) => {
+                req[net.field.motor] = makeMotorRequest(-16,16);
+                return req;
+            }
+        },
+        {
+            button: document.getElementById('butLeft'),
+            evt: (req) => {
+                req[net.field.motor] = makeMotorRequest(16,-16);
+                return req;
+            }
+        },
+    ];
     for(var key in Object.values(net.motor)){
         motorStatus[key] = 0;
         power[net.power.motor][key] = 0;
@@ -325,19 +373,27 @@ function startGamepadLoop(){
 function gamepadLoop(){
     let gamepads = navigator.getGamepads ? navigator.getGamepads() : navigator.webkitGetGamepads;
 	for(let g = 0; g < gamepads.length; ++g){
-        if(gamepads[g].id == "Whatever the 3d mouse is ided as"){
-            let req = {right: 0, left: 0};
+        console.log(gamepads[g]);
+        if('id' in gamepads[g] && gamepads[g].id.indexOf("SpaceNavigator") != -1){
+            let req = {};
             for(let i = 0; i < 8; ++i){
-                if(state3dMouse.axes[i] > gamepad.axes[i] && gamepad.axes[i] < -.1 || state3dMouse.axes[i] < gamepad.axes[i] && gamepad.axes[i] > .1){
-                    state3dMouse.axes[i] = gamepad.axes[i];
+                if(state3dMouse.axes[i] > gamepads[g].axes[i] && gamepads[g].axes[i] < -.1 || state3dMouse.axes[i] < gamepads[g].axes[i] && gamepads[g].axes[i] > .1){
+                    state3dMouse.axes[i] = gamepads[g].axes[i];
                     if(state3dMouse.axes[i] < .1 && state3dMouse.axes[i] > -.1){
                         state3dMouse.axes[i] = 0;
                     }
                     console.log(Object.keys(buttonMap3dMouse.axes)[i] + ": " + state3dMouse.axes[i]);
                     switch(i){
                         case buttonMap3dMouse.axes.backward: //TODO incase of turn
-                            req.right = state3dMouse[i] * -128;
-                            req.left = state3dMouse[i] * -128;
+                            req[net.motor.driveL] = state3dMouse[i] * -128;
+                            req[net.motor.driveR] = state3dMouse[i] * -128;
+                            document.getElementById('butForward').style.backgroundColor = '';
+                            document.getElementById('butReverse').style.backgroundColor = '';
+                            if(state3dMouse[i] > 0){
+                                document.getElementById('butForward').style.backgroundColor = 'gray';
+                            } else if(state3dMouse[i] < 0){
+                                document.getElementById('butReverse').style.backgroundColor = 'gray';
+                            } 
                         break;
                         case buttonMap3dMouse.axes.right:
                         break;
@@ -360,14 +416,24 @@ function gamepadLoop(){
                 }
             }
             for(let i = 0; i < 2; ++i){
-                if(state3dMouse.buttons[i] != gamepad.buttons[i].pressed){
-                    state3dMouse.buttons[i] = gamepad.buttons[i].pressed;
+                if(state3dMouse.buttons[i] != gamepads[g].buttons[i].pressed){
+                    state3dMouse.buttons[i] = gamepads[g].buttons[i].pressed;
                     console.log(Object.keys(buttonMap3dMouse.buttons)[i] + ": " + state3dMouse.buttons[i]);
                 }
             }
         }
     }
 	if(gamepadLoopRunning) requestAnimationFrame(loop);
+}
+function buttonClick(button){
+    for(let i = 0; i < buttons.length; ++i){
+        buttons[i].button.style.backgroundColor = '';
+        if(buttons[i].button == button){
+            req = {}
+            buttons[i].button.style.backgroundColor = 'gray';
+            req = buttons[i].evt(req);
+        }
+    }
 }
 //#endregion
 start();

@@ -24,12 +24,11 @@
                     <div id="buttons">
                         <lable>Speed Control: </lable><input orient="vertical" id="comSpeed" type="range" min="0" max="127" value="0" onchange="setSpeed(this.value);"/>
                         <div id="moveCon">
-                            <input style="grid-column: 2;" type="button" value="W" />
-                            <input style="grid-column: 1; grid-row: 2" type="button" value="A" />
-                            <input style="grid-column: 2; grid-row: 2;" type="button" value="Stop" />
-                            <input style="grid-column: 2; grid-row: 3;" type="button" value="S" />
-                            <input style="grid-column: 3; grid-row: 2;" type="button" value="D" />
-                            
+                            <input style="grid-column: 2;" type="button" value="W" id='butForward' onclick='buttonClick(this);'/>
+                            <input style="grid-column: 1; grid-row: 2" type="button" value="A" id='butLeft' onclick='buttonClick(this);'/>
+                            <input style="grid-column: 2; grid-row: 2;" type="button" value="Stop" id='butStop' onclick='buttonClick(this);'/>
+                            <input style="grid-column: 2; grid-row: 3;" type="button" value="S" id='butReverse' onclick='buttonClick(this);'/>
+                            <input style="grid-column: 3; grid-row: 2;" type="button" value="D" id='butRight' onclick='buttonClick(this);'/>
                         </div>
                     </div>
                     <div id="gauges">

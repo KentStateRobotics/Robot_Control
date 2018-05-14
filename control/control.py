@@ -26,7 +26,7 @@ class control:
             self.powerStatus[power.motor.value][key.value] = 0
         try:
             self.arduinoConn = serialConn(self.arduinoRec)
-        except serialConn.error as e:
+        except Exception as e:
             print(e)
         try:
             self.websockServ = sockServer.sockServer(sockPort, self.sockRec)

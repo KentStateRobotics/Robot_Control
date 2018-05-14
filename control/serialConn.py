@@ -35,10 +35,6 @@ class serialConn():
         conReceiving = 2,
         checkReceiving = 3
 
-    class error(Exception):
-        def __init__(self, message):
-            self.message = message
-
     def __init__(self, recEvent=None, port=None, target="Arduino", bufferSize = 200, baud=9600, timeout=1, enableSendAck = True, enableRecAck = False):
         self.enableSendAck = enableSendAck
         self.enableRecAck = enableRecAck
@@ -56,16 +52,17 @@ class serialConn():
         self._recTimer = 0
         self._checksum = 0
         self._queuedMessaegs = []
+        self.connect()
+    
+    def connect(self):
         if self._port is None:
             ports = serial.tools.list_ports.comports()
             for p in ports:
                 if target in p[1]:
                     self._port = p[0]
-                    break
-        if self._port is None:
-            raise self.error("No port was given or found")
-        threading.Thread(target=self._start).start()
-
+        if self._port != None:
+            threading.Thread(target=self._start).start()
+        
     def write(self, message, escape = True, ignoreQueue = False):
         """Sends stuff over the serial connection
         Args:
@@ -73,6 +70,9 @@ class serialConn():
             escape (bool): automaticly escape flags
             ignoreQueue (bool): ignore the write queue and dont wait for an ack
         """
+        if self._conn is None:
+            self.connect()
+            return
         check = self.calcChecksum(message)
         if(escape):
             i = 0
@@ -112,7 +112,7 @@ class serialConn():
         if self._port is None: return
         with serial.Serial(self._port, self._baud, timeout=self._timeout) as self._conn:
             while self._conn.is_open:
-              self._read()    
+              self._read()
 
     def _read(self):
         """Only for use internaly, ran in thead to read and process input"""

@@ -26,8 +26,8 @@ namespace protocol{
     enum class motor: char { //Object of motors and their settings
         driveR = '0',
         driveL = '1',
-        actPitch = '2',
-        actLower = '3',
+        actWrist = '2',
+        actElbow = '3',
         belt = '4',
     };
     enum class power: char { //Object of current/voltage sensors and their readings
