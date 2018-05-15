@@ -23,7 +23,6 @@ class motor(Enum):
     driveL = "1"
     actWrist = "2"
     actElbow = "3"
-    belt = "4"
 @unique
 class power(Enum):
     battery = "0"

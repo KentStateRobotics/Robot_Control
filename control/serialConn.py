@@ -51,6 +51,7 @@ class serialConn():
         self._ackTimer = 0
         self._recTimer = 0
         self._checksum = 0
+        self._conn = None
         self._queuedMessaegs = []
         self.connect()
     

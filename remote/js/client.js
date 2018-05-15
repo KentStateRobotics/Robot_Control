@@ -64,7 +64,15 @@ var keys = [
     inputKey('aUp', 'q', (req = {}) => {}),
     inputKey('aDown', 'e', (req = {}) => {}),
     inputKey('aForward', 'r', (req = {}) => {}),
-    inputKey('aReverse', 'f', (req = {}) => {})
+    inputKey('aReverse', 'f', (req = {}) => {}),
+    inputKey('lockDrive', '2', (req = {}) => {
+        lockDrive = true;
+        return req;
+    }),
+    inputKey('lockArm', '1', (req = {}) => {
+        lockArm = true;
+        return req;
+    }),
 ];
 const net = { //Protocall used to send / receive info
     field: {
@@ -84,7 +92,6 @@ const net = { //Protocall used to send / receive info
         driveL: "1",
         actWrist: "2",
         actElbow: "3",
-        belt: "4"
     },
     power: {
         battery: "0",
@@ -92,6 +99,7 @@ const net = { //Protocall used to send / receive info
         motor: "2"
     }
 }
+const THRESHOLD_MOUSE3D = .1
 var power = {};
 var motorStatus = {};
 var gauges = {};
@@ -101,6 +109,8 @@ var gamepadLoopRunning = false;
 //Remember what command the robot is being given
 var move = '';
 var turn = '';
+var lockArm = false;
+var lockDrive = false;
 var state3dMouse = {
 	buttons: {
 		0: false,
@@ -138,7 +148,6 @@ document.addEventListener('keydown', (event) => {
         event.preventDefault();
         keyPressed.down = true;
         console.log(keyPressed['name']);
-        req = {};
         req = keyPressed.event(req);
         if(req[net.field.motor] != null) {
             req[net.field.action] = net.action.command;
@@ -169,6 +178,12 @@ document.addEventListener('keyup', (event) => {
                 req[net.field.motor] = makeMotorRequest(0);
             }
         }
+        if(keyReleased.name == 'lockArm'){
+            lockArm = false;
+        }
+        if(keyReleased.name == 'lockDrive'){
+            lockDrive = false;
+        }
         if(req[net.field.motor] != null) send(req);
     }
 });
@@ -195,7 +210,7 @@ function start(){
     buttons = [
         {
             button: document.getElementById('butStop'),
-            evt: (req) => {
+            evt: (req = {}) => {
                 req[net.field.motor] = makeMotorRequest(0);
                 document.getElementById('butStop').style.backgroundColor = '';
                 return req;
@@ -203,29 +218,61 @@ function start(){
         },
         {
             button: document.getElementById('butForward'),
-            evt: (req) => {
-                req[net.field.motor] = makeMotorRequest(speed);
+            evt: (req = {}) => {
+                req[net.field.motor] = makeMotorRequest(document.getElementById('comSpeed').value);
                 return req;
             }
         },
         {
             button: document.getElementById('butReverse'),
-            evt: (req) => {
-                req[net.field.motor] = makeMotorRequest(speed * -1);
+            evt: (req = {}) => {
+                req[net.field.motor] = makeMotorRequest(document.getElementById('comSpeed').value * -1);
                 return req;
             }
         },
         {
             button: document.getElementById('butRight'),
-            evt: (req) => {
+            evt: (req = {}) => {
                 req[net.field.motor] = makeMotorRequest(-16,16);
                 return req;
             }
         },
         {
             button: document.getElementById('butLeft'),
-            evt: (req) => {
+            evt: (req = {}) => {
                 req[net.field.motor] = makeMotorRequest(16,-16);
+                return req;
+            }
+        },
+        {
+            button: document.getElementById('butEUp'),
+            evt: (req = {}) => {
+                req[net.field.motor] = {};
+                req[net.field.motor][net.motor.actElbow] = 128;
+                return req;
+            }
+        },
+        {
+            button: document.getElementById('butEDown'),
+            evt: (req = {}) => {
+                req[net.field.motor] = {};
+                req[net.field.motor][net.motor.actElbow] = -128;
+                return req;
+            }
+        },
+        {
+            button: document.getElementById('butWUp'),
+            evt: (req = {}) => {
+                req[net.field.motor] = {};
+                req[net.field.motor][net.motor.actWrist] = 128;
+                return req;
+            }
+        },
+        {
+            button: document.getElementById('butWDown'),
+            evt: (req = {}) => {
+                req[net.field.motor] = {};
+                req[net.field.motor][net.motor.actWrist] = -128;
                 return req;
             }
         },
@@ -252,7 +299,7 @@ function start(){
         highDpiSupport: true,     // High resolution support
     };
     //Create motor amp gauges in html
-    for(var key in net.motor){
+    /*for(var key in net.motor){
         document.getElementById("gauges").innerHTML += '<div><canvas id="'+key+'Gauge"></canvas><p id="'+key+'Text">Motor</p></div>'
     }
     temp = {};
@@ -282,6 +329,7 @@ function start(){
         gauges[key] = gauge;
     }
     updateGauges();
+    */
     if(!conn){
         changeScene('connect');
     }
@@ -289,7 +337,11 @@ function start(){
 function send(data){
     message = JSON.stringify(data)
     console.log("Sending: " + message);
-    conn.send(message);
+    try{
+        conn.send(message);
+    }catch(e){
+        console.log(e);
+    }
 }
 function connect(){
     ip = document.getElementById("ipBox").value;
@@ -330,18 +382,19 @@ function connect(){
     }
 }
 function updateGauges(){
-    for(var key in net.power){
+    /*for(var key in net.power){
         if(key == 'motor') continue;
         gauges[key].set(power[net.power[key]]);
         document.getElementById(key + 'Text').innerText = key + ": " + power[net.power[key]] + " amps";
         if(key == 'battery'){
             document.getElementById(key + 'Text').innerText = key + ": " + power[net.power[key]] + " volts";
         }
-    }
+    }*/
+    /*
     for(var key in net.motor){
         gauges[key].set(power[net.power.motor][net.motor[key]]);
         document.getElementById(key + 'Text').innerText = key + ": " + power[net.power.motor][net.motor[key]] + " amps";
-    }
+    }*/
 }
 function inputKey(name, key, event){
     return {'name': name, 'key': key, 'down': false, 'event': event};
@@ -371,47 +424,93 @@ function startGamepadLoop(){
     } 
 }
 function gamepadLoop(){
-    let gamepads = navigator.getGamepads ? navigator.getGamepads() : navigator.webkitGetGamepads;
-	for(let g = 0; g < gamepads.length; ++g){
-        console.log(gamepads[g]);
-        if('id' in gamepads[g] && gamepads[g].id.indexOf("SpaceNavigator") != -1){
-            let req = {};
+    let gamepads = navigator.getGamepads() //navigator.getGamepads //? : navigator.webkitGetGamepads;
+	for(let g = 1; g < gamepads.length; ++g){
+        if(gamepads[g] != null && gamepads[g].id.indexOf("SpaceNavigator") != -1){
+            let command = {};
             for(let i = 0; i < 8; ++i){
-                if(state3dMouse.axes[i] > gamepads[g].axes[i] && gamepads[g].axes[i] < -.1 || state3dMouse.axes[i] < gamepads[g].axes[i] && gamepads[g].axes[i] > .1){
+                if(state3dMouse.axes[i] > gamepads[g].axes[i] + THRESHOLD_MOUSE3D || state3dMouse.axes[i] < gamepads[g].axes[i] - THRESHOLD_MOUSE3D){
+                    console.log(i + ' : ' + state3dMouse.axes[i] + " : " + gamepads[g].axes[i]);
                     state3dMouse.axes[i] = gamepads[g].axes[i];
-                    if(state3dMouse.axes[i] < .1 && state3dMouse.axes[i] > -.1){
+                    if(state3dMouse.axes[i] <= THRESHOLD_MOUSE3D && state3dMouse.axes[i] >= -1 * THRESHOLD_MOUSE3D){
                         state3dMouse.axes[i] = 0;
+                    } else if(state3dMouse.axes[i] >= 1 - THRESHOLD_MOUSE3D || state3dMouse.axes[i] <= -1 + THRESHOLD_MOUSE3D){
+                        state3dMouse.axes[i] = state3dMouse.axes[i] / Math.abs(state3dMouse.axes[i]);
                     }
-                    console.log(Object.keys(buttonMap3dMouse.axes)[i] + ": " + state3dMouse.axes[i]);
                     switch(i){
                         case buttonMap3dMouse.axes.backward: //TODO incase of turn
-                            req[net.motor.driveL] = state3dMouse[i] * -128;
-                            req[net.motor.driveR] = state3dMouse[i] * -128;
-                            document.getElementById('butForward').style.backgroundColor = '';
-                            document.getElementById('butReverse').style.backgroundColor = '';
-                            if(state3dMouse[i] > 0){
-                                document.getElementById('butForward').style.backgroundColor = 'gray';
-                            } else if(state3dMouse[i] < 0){
-                                document.getElementById('butReverse').style.backgroundColor = 'gray';
-                            } 
-                        break;
-                        case buttonMap3dMouse.axes.right:
-                        break;
-                        case buttonMap3dMouse.axes.down:
-                        break;
-                        case buttonMap3dMouse.axes.pitch:
-                        break;
-                        case buttonMap3dMouse.axes.roll:
-                            if(state3dMouse[buttonMap3dMouse.axes.backward] != 0){
-                                req.right = state3dMouse[buttonMap3dMouse.axes.backward] * -128 - state3dMouse[i] * 64;
-                                req.left = state3dMouse[buttonMap3dMouse.axes.backward] * -128 - state3dMouse[i] * -64;
-                            }else{
-                                req.right = state3dMouse[i] * -64;
-                                req.left = state3dMouse[i] * 64;
+                            if(!lockDrive){
+                                if(state3dMouse[buttonMap3dMouse.axes.yaw] != 0){
+                                    command[net.motor.driveR] = state3dMouse.axes[buttonMap3dMouse.axes.backward] * -128 - state3dMouse.axes[i] * 64;
+                                    command[net.motor.driveL] = state3dMouse.axes[buttonMap3dMouse.axes.backward] * -128 - state3dMouse.axes[i] * -64;
+                                }else{
+                                    command[net.motor.driveR] = state3dMouse.axes[i] * -128;
+                                    command[net.motor.driveL] = state3dMouse.axes[i] * -128;
+                                }
+                                document.getElementById('comSpeed').value = Math.abs(state3dMouse.axes[i] * 128);
+                                document.getElementById('butForward').style.backgroundColor = '';
+                                document.getElementById('butReverse').style.backgroundColor = '';
+                                if(state3dMouse.axes[i] < 0){
+                                    document.getElementById('butForward').style.backgroundColor = 'gray';
+                                } else if(state3dMouse.axes[i] > 0){
+                                    document.getElementById('butReverse').style.backgroundColor = 'gray';
+                                }
                             }
                         break;
-                        case buttonMap3dMouse.axes.yaw:
+                        case buttonMap3dMouse.axes.right:
+                            continue;
                         break;
+                        case buttonMap3dMouse.axes.down:
+                            if(!lockArm){
+                                command[net.motor.actElbow] = state3dMouse.axes[i] * -128;
+                                document.getElementById('butEUp').style.backgroundColor = '';
+                                document.getElementById('butEDown').style.backgroundColor = '';
+                                if(state3dMouse.axes[i] < 0){
+                                    document.getElementById('butEUp').style.backgroundColor = 'gray';
+                                }else if(state3dMouse.axes[i] > 0){
+                                    document.getElementById('butEDown').style.backgroundColor = 'gray';
+                                }
+                            }
+                        break;
+                        case buttonMap3dMouse.axes.pitch:
+                            if(!lockArm){
+                                command[net.motor.actWrist] = state3dMouse.axes[i] * 128;
+                                document.getElementById('butWUp').style.backgroundColor = '';
+                                document.getElementById('butWDown').style.backgroundColor = '';
+                                if(state3dMouse.axes[i] > 0){
+                                    document.getElementById('butWUp').style.backgroundColor = 'gray';
+                                }else if(state3dMouse.axes[i] < 0){
+                                    document.getElementById('butWDown').style.backgroundColor = 'gray';
+                                }
+                            }
+                        break;
+                        case buttonMap3dMouse.axes.roll:
+                            continue;
+                        break;
+                        case buttonMap3dMouse.axes.yaw:
+                            if(!lockDrive){
+                                if(state3dMouse[buttonMap3dMouse.axes.backward] != 0){
+                                    command[net.motor.driveR] = state3dMouse.axes[buttonMap3dMouse.axes.backward] * -128 - state3dMouse.axes[i] * 64;
+                                    command[net.motor.driveL] = state3dMouse.axes[buttonMap3dMouse.axes.backward] * -128 - state3dMouse.axes[i] * -64;
+                                }else{
+                                    command[net.motor.driveR] = state3dMouse.axes[i] * -64;
+                                    command[net.motor.driveL] = state3dMouse.axes[i] * 64;
+                                }
+                                document.getElementById('butRight').style.backgroundColor = '';
+                                document.getElementById('butLeft').style.backgroundColor = '';
+                                if(state3dMouse.axes[i] < 0){
+                                    document.getElementById('butLeft').style.backgroundColor = 'gray';
+                                } else if(state3dMouse.axes[i] > 0){
+                                    document.getElementById('butRight').style.backgroundColor = 'gray';
+                                }
+                            }
+                        break;
+                    }
+                    if(Object.keys(command).length > 0){
+                        let req = {};
+                        req[net.field.action] = net.action.command;
+                        req[net.field.motor] = command;
+                        send(req);
                     }
                 }
             }
@@ -423,15 +522,14 @@ function gamepadLoop(){
             }
         }
     }
-	if(gamepadLoopRunning) requestAnimationFrame(loop);
+	if(gamepadLoopRunning) requestAnimationFrame(gamepadLoop);
 }
 function buttonClick(button){
     for(let i = 0; i < buttons.length; ++i){
         buttons[i].button.style.backgroundColor = '';
         if(buttons[i].button == button){
-            req = {}
             buttons[i].button.style.backgroundColor = 'gray';
-            req = buttons[i].evt(req);
+            send(buttons[i].evt());
         }
     }
 }

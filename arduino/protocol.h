@@ -28,7 +28,6 @@ namespace protocol{
         driveL = '1',
         actWrist = '2',
         actElbow = '3',
-        belt = '4',
     };
     enum class power: char { //Object of current/voltage sensors and their readings
         battery = '0', //voltage
