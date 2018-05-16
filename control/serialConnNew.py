@@ -41,10 +41,14 @@ class serialConn():
     
     def connect(self):
         if self._port is None:
-            ports = serial.tools.list_ports.comports()
+            '''ports = serial.tools.list_ports.comports()
             for p in ports:
                 if self._target in p[1]:
-                    self._port = p[0]
+                    self._port = p[0]'''
+            ports = serial.tools.list_ports.comports()
+            for port in ports:
+                if "ACM" in port.device:
+                    self._port = port.device
         if self._port != None:
             threading.Thread(target=self._start).start()
         
