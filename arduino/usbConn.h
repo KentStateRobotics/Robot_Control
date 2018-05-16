@@ -11,14 +11,12 @@
 
 class usbConn{
     public:
-        usbConn() : usbConn(200, true, false) {};
-        usbConn(int bufferSize, bool enableRecAck, bool enableSendAck){
+        usbConn() : usbConn(500) {};
+        usbConn(int bufferSize){
             //enableRecAck: send an ack for every received message NOT IMPLENTED
             //enableSendAck: wait for an ack after every received message NOT IMPLIMENTD
             this->bufferSize = bufferSize;
             this->buffer = new char[bufferSize];
-            this->enableRecAck = enableRecAck;
-            this->enableSendAck = enableSendAck;
         };
         ~usbConn(){
             Serial.flush();
@@ -26,7 +24,7 @@ class usbConn{
             delete[] buffer;
         };
         void start(int baud){ Serial.begin(baud); }; //Starts serial connection
-        void start(){ start(9600); };
+        void start(){ start(19200); };
         //Write message to serial with flags and checksum
         //escape: automaticly escape all flag bytes
         void write(const char* message, int length, bool escape = true); 
@@ -48,9 +46,7 @@ class usbConn{
         int timer = 0;
         int timeout = 1000;
         char checksum = 0;
-        enum class readState{notReading, readCheck, readCon, reading};
+        enum class readState{notReading, readCon, reading};
         readState state = readState::notReading;
-
-        char calcChecksum(const char message[], int length);
 };
 #endif

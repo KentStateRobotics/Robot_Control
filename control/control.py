@@ -4,7 +4,7 @@
 #Processes commands and sensor data, relay between socket and serial
 
 from protocol import motor, power, field, action
-from serialConn import serialConn
+from serialConnNew import serialConn
 import json
 import sockServer
 import httpServer
@@ -25,7 +25,7 @@ class control:
             self.motorStatus[key.value] = 0
             self.powerStatus[power.motor.value][key.value] = 0
         try:
-            self.arduinoConn = serialConn(self.arduinoRec)
+            self.arduinoConn = serialConn(self.recDebug)
         except Exception as e:
             print(e)
         try:
@@ -46,15 +46,6 @@ class control:
             message[field.power.value][power.main.value] = value * 5
             self.arduinoRec(message)
         '''
-        '''self.arduinoConn.recEventAdd(self.recDebug)
-        while True: #For serial debuging
-            try:
-                value = int(input())
-                data = {}
-                data[motor.actLower.value] = value
-                self.motorCommand(data)
-            except ValueError:
-                self.arduinoConn.write(json.dumps(self.getAll()))'''
 
     def recDebug(self, message):
         print("received: " + json.dumps(message))
@@ -94,11 +85,9 @@ class control:
 
     def motorCommand(self, motors):
         message = {}
-        message[field.action.value] = action.command.value
-        message[field.motor.value] = {}
         for key, value in motors.items():
-            self.commandStatus[key] = value
-            message[field.motor.value][key] = value
+            self.commandStatus[key] = int(value)
+            message[key] = int(value)
         self.arduinoConn.write(json.dumps(message))
 
     def powerCommand(self, powers):
@@ -118,7 +107,6 @@ class control:
 
     def stop(self):
         message = {}
-        message[field.action.value] = action.stop.value
         self.arduinoConn.write(json.dumps(message))
         self.websockServ.send(message)
         for key in motor:

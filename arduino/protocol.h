@@ -10,30 +10,33 @@
 #ifndef RMC_ARDUINO_PROTOCOL_H_
 #define RMC_ARDUINO_PROTOCOL_H_
 
+
 namespace protocol{
-    enum class field: char { //Defines what the value is, matches the enums below
+  /*
+    class field { //Defines what the value is, matches the enums below
         action = '0', //Single action
         motor = '1', //List of motors and their values
         power = '2', //List of current sensors and their values
     };
-    enum class action: char{ //What to do
+    class action { //What to do
         requestAll = '0', //Send all sensor data
         command = '1', //Set values ex: send sensor or move motors
         stop = '2', //Stop all
         error = '3', //error
         autoRun = '4', //currently unused
-    };
-    enum class motor: char { //Object of motors and their settings
-        driveR = '0',
-        driveL = '1',
-        actWrist = '2',
-        actElbow = '3',
-    };
-    enum class power: char { //Object of current/voltage sensors and their readings
-        battery = '0', //voltage
-        main = '1',
-        motor = '2', //Object of motors for each currnet motor's current sensor
+    };*/
+    class motor { //Object of motors and their settings
+      public:
+        const static String driveR;
+        const static String driveL;
+        const static String actWrist;
+        const static String actElbow;
     };
 };
+
+const String protocol::motor::driveR = "0";
+const String protocol::motor::driveL = "1";
+const String protocol::motor::actWrist = "2";
+const String protocol::motor::actElbow = "3";
 
 #endif
