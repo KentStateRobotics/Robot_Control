@@ -43,7 +43,7 @@ class usbConn{
         bool enableSendAck = true;
         char* buffer = 0;
         int bufferLoc = 0;
-        int timer = 0;
+        unsigned long timer = 0;
         int timeout = 1000;
         char checksum = 0;
         enum class readState{notReading, readCon, reading};

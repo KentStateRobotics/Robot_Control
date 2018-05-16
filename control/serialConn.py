@@ -9,6 +9,7 @@ import serial.tools.list_ports
 import threading
 import time
 import json
+import os
 from enum import IntEnum, unique
 
 class serialConn():
@@ -41,14 +42,18 @@ class serialConn():
     
     def connect(self):
         if self._port is None:
-            '''ports = serial.tools.list_ports.comports()
-            for p in ports:
-                if self._target in p[1]:
-                    self._port = p[0]'''
-            ports = serial.tools.list_ports.comports()
-            for port in ports:
-                if "ACM" in port.device:
-                    self._port = port.device
+            if os.name == 'nt':
+                ports = serial.tools.list_ports.comports()
+                for p in ports:
+                    if self._target in p[1]:
+                        self._port = p[0]
+            elif os.name == 'posix':
+                ports = serial.tools.list_ports.comports()
+                for port in ports:
+                    if "ACM" in port.device:
+                        self._port = port.device
+            else:
+                print("OS: " + os.name + " not reconized")
         if self._port != None:
             threading.Thread(target=self._start).start()
         
@@ -60,6 +65,7 @@ class serialConn():
             ignoreQueue (bool): ignore the write queue and dont wait for an ack
         """
         if self._conn is None:
+            print("NONE")
             self.connect()
             return
         if(escape):
@@ -83,6 +89,7 @@ class serialConn():
 
     def _read(self):
         """Only for use internaly, ran in thead to read and process input"""
+        if(not self._conn.is_open): return
         char = str(self._conn.read().decode("utf-8"))
         if self._state == self.states.receiving:
             if char == self.CON_CHAR:

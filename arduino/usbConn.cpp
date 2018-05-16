@@ -42,7 +42,7 @@ void usbConn::write(String message, bool escape) {
 int usbConn::readLoop(){
   if(Serial.available()){
     char recChar = Serial.read();
-    if(timeout < millis() - timer){
+    if(timeout < (millis() - timer)){
       state = readState::notReading;
     }
     switch(state){

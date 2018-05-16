@@ -4,10 +4,11 @@
 #Processes commands and sensor data, relay between socket and serial
 
 from protocol import motor, power, field, action
-from serialConnNew import serialConn
+from serialConn import serialConn
 import json
 import sockServer
 import httpServer
+import threading
 
 class control:
     def __init__(self, httpPort, sockPort):
@@ -33,6 +34,8 @@ class control:
             self.httpServ = httpServer.httpServer(httpPort)
         except Exception as e:
             print(e)
+        #self._resetPin = LED(21)
+        #self._resetPin.on()
         '''
         while True: #For sending socket and gauge debuging
             value = float(input())
@@ -77,7 +80,7 @@ class control:
                 if field.motor.value in message and len(message[field.motor.value]) > 0:
                     self.motorCommand(message[field.motor.value])
             elif message[field.action.value] == action.stop.value:
-                self.stop()
+                pass
             elif message[field.action.value] == action.auto.value:
                 self.auto()
             elif message[field.action.value] == action.error.value:
