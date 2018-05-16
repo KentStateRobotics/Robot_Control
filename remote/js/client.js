@@ -112,6 +112,7 @@ var turn = '';
 var lockArm = false;
 var lockDrive = false;
 var gamepadInUse = null;
+var timer = 0;
 var state3dMouse = {
 	buttons: {
 		0: false,
@@ -442,6 +443,12 @@ function gamepadLoop(){
         if(gamepadLoopRunning) requestAnimationFrame(gamepadLoop);
         return;
     }
+    let date = new Date();
+    if(date.getTime() - timer < 250){
+        if(gamepadLoopRunning) requestAnimationFrame(gamepadLoop);
+        return;
+    }
+    timer = date.getTime();
     if(gamepads[gamepadInUse] != null && gamepads[gamepadInUse].id.indexOf("SpaceNavigator") != -1){
         let command = {};
         for(let i = 0; i < 8; ++i){
@@ -456,9 +463,9 @@ function gamepadLoop(){
                 switch(i){
                     case buttonMap3dMouse.axes.backward: //TODO incase of turn
                         if(!lockDrive){
-                            if(state3dMouse[buttonMap3dMouse.axes.yaw] != 0){
+                            if(state3dMouse[buttonMap3dMouse.axes.yaw] != 0 && state3dMouse[buttonMap3dMouse.axes.yaw] != undefined){
                                 command[net.motor.driveR] = Math.min(Math.max(state3dMouse.axes[buttonMap3dMouse.axes.backward] * -127 - state3dMouse.axes[i] * 64, -127), 127);
-                                command[net.motor.driveL] = Math.min(Math.max(state3dMouse.axes[buttonMap3dMouse.axes.backward] * -127 - state3dMouse.axes[i] * -64, -127), 127);
+                                command[net.motor.driveL] = Math.min(Math.max(state3dMouse.axes[buttonMap3dMouse.axes.backward] * -127 + state3dMouse.axes[i] * 64, -127), 127);
                             }else{
                                 command[net.motor.driveR] = state3dMouse.axes[i] * -127;
                                 command[net.motor.driveL] = state3dMouse.axes[i] * -127;
@@ -507,7 +514,7 @@ function gamepadLoop(){
                         if(!lockDrive){
                             if(state3dMouse[buttonMap3dMouse.axes.backward] != 0){
                                 command[net.motor.driveR] = Math.min(Math.max(state3dMouse.axes[buttonMap3dMouse.axes.backward] * -127 - state3dMouse.axes[i] * 64, -127), 127);
-                                command[net.motor.driveL] = Math.min(Math.max(state3dMouse.axes[buttonMap3dMouse.axes.backward] * -127 - state3dMouse.axes[i] * -64, -127), 127);
+                                command[net.motor.driveL] = Math.min(Math.max(state3dMouse.axes[buttonMap3dMouse.axes.backward] * -127 + state3dMouse.axes[i] * 64, -127), 127);
                             }else{
                                 command[net.motor.driveR] = state3dMouse.axes[i] * -64;
                                 command[net.motor.driveL] = state3dMouse.axes[i] * 64;
@@ -537,7 +544,8 @@ function gamepadLoop(){
             }
         }
     }
-	if(gamepadLoopRunning) requestAnimationFrame(gamepadLoop);
+    if(gamepadLoopRunning) requestAnimationFrame(gamepadLoop);
+    return;
 }
 function buttonClick(button){
     for(let i = 0; i < buttons.length; ++i){

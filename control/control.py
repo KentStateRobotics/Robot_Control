@@ -88,7 +88,7 @@ class control:
         for key, value in motors.items():
             self.commandStatus[key] = int(value)
             message[key] = int(value)
-        self.arduinoConn.write(json.dumps(message))
+        self.arduinoConn.write(message)
 
     def powerCommand(self, powers):
         message = {}
