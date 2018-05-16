@@ -97,9 +97,9 @@ class serialConn():
                 data = str(self._buffer[0:self._bufferLoc].decode('utf-8'))
                 if data != '':
                     print("RECEIVED: " + data)
-                    message = json.loads(data)
-                    for evt in self._recEvent:
-                        evt(message)
+                    #message = json.loads(data)
+                    #for evt in self._recEvent:
+                    #    evt(message)
                 self._state = self.states.notReceiving
             elif char == self.CON_CHAR:
                 self._buffer[self._bufferLoc] = ord(char)

@@ -16,6 +16,8 @@
 SoftwareSerial SWSerial (NOT_A_PIN, 6);
 Sabertooth ST1[2] = { Sabertooth(128, SWSerial), Sabertooth(129, SWSerial) };
 
+void(* resetFunc) (void) = 0;
+
 usbConn conn;
 void setup(){
   conn.start(19200);
@@ -33,6 +35,7 @@ void setup(){
 void loop() {
   int size = conn.readLoop();
   if(size){
+    conn.write("Still Running");
     StaticJsonBuffer<200> jsonBuffer;
     JsonObject& root = jsonBuffer.parseObject(conn.getBuffer(), size);
     if(root.containsKey(protocol::motor::driveR)){
@@ -42,10 +45,12 @@ void loop() {
      ST1[0].motor(1, int(root[protocol::motor::driveL]));
     }
     if(root.containsKey(protocol::motor::actWrist)){
-      ST1[1].motor(2, int(root[protocol::motor::actWrist]) / 2);
+      ST1[1].motor(2, int(root[protocol::motor::actWrist]));
     }
     if(root.containsKey(protocol::motor::actElbow)){
-      ST1[1].motor(1, int(root[protocol::motor::actElbow]) / 2);
+      ST1[1].motor(1, int(root[protocol::motor::actElbow]));
     }
+    SWSerial.flush();
+    resetFunc();
   }
 }

@@ -57,7 +57,6 @@ class client:
                 self.destory()
                 break 
             if message != "":
-                print("Socket Received: " + message)
                 try:
                     data = json.loads(message)
                     self.recEvent(data)
