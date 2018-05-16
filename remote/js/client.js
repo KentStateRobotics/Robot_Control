@@ -520,8 +520,8 @@ function gamepadLoop(){
                     case buttonMap3dMouse.axes.backward: //TODO incase of turn
                         if(!lockDrive){
                             if(state3dMouse.axes[buttonMap3dMouse.axes.yaw] != 0 && state3dMouse.axes[buttonMap3dMouse.axes.yaw] != undefined){
-                                command[net.motor.driveR] = Math.min(Math.max(state3dMouse.axes[buttonMap3dMouse.axes.backward] * -127 - state3dMouse.axes[i] * 64, -127), 127) * (invert ? -1 : 1);
-                                command[net.motor.driveL] = Math.min(Math.max(state3dMouse.axes[buttonMap3dMouse.axes.backward] * -127 + state3dMouse.axes[i] * 64, -127), 127)* (invert ? -1 : 1);
+                                command[net.motor.driveR] = Math.min(Math.max(state3dMouse.axes[buttonMap3dMouse.axes.backward] * -127 - state3dMouse.axes[i] * 127, -127), 127) * (invert ? -1 : 1);
+                                command[net.motor.driveL] = Math.min(Math.max(state3dMouse.axes[buttonMap3dMouse.axes.backward] * -127 + state3dMouse.axes[i] * 127, -127), 127)* (invert ? -1 : 1);
                             }else{
                                 command[net.motor.driveR] = state3dMouse.axes[i] * -127* (invert ? -1 : 1);
                                 command[net.motor.driveL] = state3dMouse.axes[i] * -127* (invert ? -1 : 1);
@@ -569,11 +569,11 @@ function gamepadLoop(){
                     case buttonMap3dMouse.axes.yaw:
                         if(!lockDrive){
                             if(state3dMouse.axes[buttonMap3dMouse.axes.backward] != 0){
-                                command[net.motor.driveR] = Math.min(Math.max(state3dMouse.axes[buttonMap3dMouse.axes.backward] * -127 - state3dMouse.axes[i] * 64, -127), 127)* (invert ? -1 : 1);
-                                command[net.motor.driveL] = Math.min(Math.max(state3dMouse.axes[buttonMap3dMouse.axes.backward] * -127 + state3dMouse.axes[i] * 64, -127), 127)* (invert ? -1 : 1);
+                                command[net.motor.driveR] = Math.min(Math.max(state3dMouse.axes[buttonMap3dMouse.axes.backward] * -127 - state3dMouse.axes[i] * 127, -127), 127)* (invert ? -1 : 1);
+                                command[net.motor.driveL] = Math.min(Math.max(state3dMouse.axes[buttonMap3dMouse.axes.backward] * -127 + state3dMouse.axes[i] * 127, -127), 127)* (invert ? -1 : 1);
                             }else{
-                                command[net.motor.driveR] = state3dMouse.axes[i] * -64* (invert ? -1 : 1);
-                                command[net.motor.driveL] = state3dMouse.axes[i] * 64* (invert ? -1 : 1);
+                                command[net.motor.driveR] = state3dMouse.axes[i] * -127 * (invert ? -1 : 1);
+                                command[net.motor.driveL] = state3dMouse.axes[i] * 127 * (invert ? -1 : 1);
                             }
                             document.getElementById('butRight').style.backgroundColor = '';
                             document.getElementById('butLeft').style.backgroundColor = '';
