@@ -54,10 +54,10 @@ void loop() {
      ST1[0].motor(1, int(root[protocol::motor::driveL]));
     }
     if(root.containsKey(protocol::motor::actWrist)){
-      ST1[1].motor(2, -1 * int(root[protocol::motor::actWrist]));
+      ST1[1].motor(2, -1 * int(root[protocol::motor::actWrist]) / 2);
     }
     if(root.containsKey(protocol::motor::actElbow)){
-      ST1[1].motor(1, int(root[protocol::motor::actElbow]));
+      ST1[1].motor(1, int(root[protocol::motor::actElbow]) / 2);
     }
   }
 }

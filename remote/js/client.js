@@ -68,9 +68,9 @@ var keys = [
     inputKey('stop', ' ', (req = {}) => {
         move = '';
         turn = '';
-        req[net.field.motor] = makeMotorRequest(0);
-        req[net.field.motor][net.motor.actElbow] = 0;
-        req[net.field.motor][net.motor.actWrist] = 0;
+        stopCom = {};
+        stopCom[net.field.action] = net.action.stop;
+        send(stopCom);
         buttonClick();
         return req;
     }),
@@ -119,14 +119,15 @@ const net = { //Protocall used to send / receive info
     field: {
         action: "0",
         motor: "1",
-        power: "2"
+        power: "2",
     },
     action: {
         requestAll: "0",
         command: "1",
         stop: "2",
         error: "3",
-        auto: "4"
+        auto: "4",
+        alive: "5",
     },
     motor: {
         driveR: "0",
@@ -142,7 +143,7 @@ const net = { //Protocall used to send / receive info
 }
 const THRESHOLD_MOUSE3D = .2
 var power = {};
-var motorStatus = {};
+var commandStatus = {};
 var gauges = {};
 var buttons = [];
 var speed = 0;
@@ -153,7 +154,9 @@ var turn = '';
 var lockArm = false;
 var lockDrive = false;
 var gamepadInUse = null;
-var timer = 0;
+var updateTimer = 0;
+var aliveTimer = 0;
+var connAlive = false;
 var state3dMouse = {
 	buttons: {
 		0: false,
@@ -224,6 +227,7 @@ document.addEventListener('keyup', (event) => {
         }else if(keyReleased.name == 'lockDrive'){
             lockDrive = false;
         }else if(keyReleased.name == 'wristUp' || keyReleased.name == 'wristDown'){
+            req[net.field.motor] = {};
             req[net.field.motor][net.motor.actWrist] = 0;
             if(keyReleased.name == 'wristDown'){
                 document.getElementById('butWDown').style.backgroundColor = '';
@@ -231,6 +235,7 @@ document.addEventListener('keyup', (event) => {
                 document.getElementById('butWUp').style.backgroundColor = '';
             }
         }else if(keyReleased.name == 'elbowUp' || keyReleased.name == 'elbowDown'){
+            req[net.field.motor] = {};
             req[net.field.motor][net.motor.actElbow] = 0;
             if(keyReleased.name == 'elbowDown'){
                 document.getElementById('butEDown').style.backgroundColor = '';
@@ -336,7 +341,7 @@ function start(){
         },
     ];
     for(var key in Object.values(net.motor)){
-        motorStatus[key] = 0;
+        commandStatus[key] = 0;
         power[net.power.motor][key] = 0;
     }
     //Base Gauge options
@@ -393,6 +398,10 @@ function start(){
     }
 }
 function send(data){
+    if(data[net.field.motor]){
+        let date = new Date();
+        aliveTimer = date.getTime();
+    }
     message = JSON.stringify(data)
     console.log("Sending: " + message);
     try{
@@ -424,7 +433,7 @@ function connect(){
                     }
                     if(data[net.field.motor]){
                         for(var key in data[net.field.motor]){
-                            motorStatus[key] = data[net.field.motor][key];
+                            commandStatus[key] = data[net.field.motor][key];
                         }
                     }
                 break;
@@ -432,13 +441,16 @@ function connect(){
         }
     }
     conn.onopen = function (){
-        changeScene("control");
+        changeScene("control")
+        connAlive = true;
         req = {}
         req[net.field.action] = net.action.requestAll;
         send(req);
+        aliveLoop();
     }
     conn.onclose = function (){
         changeScene("connect")
+        connAlive = false;
     }
 }
 function updateGauges(){
@@ -483,6 +495,17 @@ function startGamepadLoop(){
         gamepadLoop();
     } 
 }
+function aliveLoop(){ 
+    let date = new Date();
+    if(date.getTime() - aliveTimer > 1000){
+        req = {};
+        req[net.field.action] = net.action.alive;
+        send(req);
+        aliveTimer = date.getTime();
+    }
+    if(connAlive) requestAnimationFrame(aliveLoop);
+    return;
+}
 function gamepadLoop(){
     let gamepads = navigator.getGamepads(); //navigator.getGamepads ? : navigator.webkitGetGamepads;
     if(gamepadInUse == null){
@@ -500,11 +523,11 @@ function gamepadLoop(){
         return;
     }
     let date = new Date();
-    if(date.getTime() - timer < 250){
+    if(date.getTime() - updateTimer < 250){
         if(gamepadLoopRunning) requestAnimationFrame(gamepadLoop);
         return;
     }
-    timer = date.getTime();
+    updateTimer = date.getTime();
     if(gamepads[gamepadInUse] != null && gamepads[gamepadInUse].id.indexOf("SpaceNavigator") != -1){
         let command = {};
         for(let i = 0; i < 8; ++i){

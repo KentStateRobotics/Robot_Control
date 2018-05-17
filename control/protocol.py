@@ -17,6 +17,7 @@ class action(Enum):
     stop = "2"
     error = "3"
     auto = "4"
+    alive = "5"
 @unique
 class motor(Enum):
     driveR = "0"

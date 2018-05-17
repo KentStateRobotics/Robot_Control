@@ -9,9 +9,12 @@ import json
 import sockServer
 import httpServer
 import threading
+import time
 
 class control:
     def __init__(self, httpPort, sockPort):
+        self._RAMP_SLOPE = 60
+        self._RAMP_DELAY = .25
         self.commandStatus = {}
         self.powerStatus = {}
         self.motorStatus = {}
@@ -34,8 +37,7 @@ class control:
             self.httpServ = httpServer.httpServer(httpPort)
         except Exception as e:
             print(e)
-        #self._resetPin = LED(21)
-        #self._resetPin.on()
+        self._rampThread = threading.Thread(target=self.rampLoop).start()
         '''
         while True: #For sending socket and gauge debuging
             value = float(input())
@@ -74,13 +76,16 @@ class control:
 
     def sockRec(self, message):
         if field.action.value in message:
+            print("SOCK REC")
             if message[field.action.value] == action.requestAll.value:
                 self.websockServ.send(self.getAll())
             elif message[field.action.value] == action.command.value:
                 if field.motor.value in message and len(message[field.motor.value]) > 0:
                     self.motorCommand(message[field.motor.value])
+            elif message[field.action.value] == action.alive.value:
+                self.arduinoConn.write(json.dumps(self.commandStatus))
             elif message[field.action.value] == action.stop.value:
-                pass
+                self.stop()
             elif message[field.action.value] == action.auto.value:
                 self.auto()
             elif message[field.action.value] == action.error.value:
@@ -90,8 +95,23 @@ class control:
         message = {}
         for key, value in motors.items():
             self.commandStatus[key] = int(value)
-            message[key] = int(value)
-        self.arduinoConn.write(json.dumps(message))
+            if(key != motor.driveL.value and key != motor.driveR.value):
+                message[key] = int(value)
+        if(len(message.items())):
+            self.arduinoConn.write(json.dumps(message))
+
+    def rampLoop(self):
+        while True:
+            req = {}
+            for key in [motor.driveL.value, motor.driveR.value]:
+                if self.commandStatus[key] != self.motorStatus[key]:
+                    if self.commandStatus[key] < self.motorStatus[key]:
+                        self.motorStatus[key] = max(self.commandStatus[key],min(127, self.motorStatus[key] - self._RAMP_SLOPE * self._RAMP_DELAY))
+                    elif self.commandStatus[key] > self.motorStatus[key]:
+                        self.motorStatus[key] = max(-127,min(self.commandStatus[key], self.motorStatus[key] + self._RAMP_SLOPE * self._RAMP_DELAY))
+                    req[key] = self.motorStatus[key]
+            if(len(req.items()) > 0): self.arduinoConn.write(json.dumps(req))
+            time.sleep(self._RAMP_DELAY)
 
     def powerCommand(self, powers):
         message = {}
@@ -110,10 +130,11 @@ class control:
 
     def stop(self):
         message = {}
-        self.arduinoConn.write(json.dumps(message))
-        self.websockServ.send(message)
         for key in motor:
+            message[key.value] = 0
             self.commandStatus[key.value] = 0
+            self.motorStatus[key.value] = 0
+        self.arduinoConn.write(json.dumps(message))
 
     def auto(self):
         message = {}
