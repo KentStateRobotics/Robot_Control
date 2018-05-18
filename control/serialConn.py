@@ -65,7 +65,7 @@ class serialConn():
             ignoreQueue (bool): ignore the write queue and dont wait for an ack
         """
         if self._conn is None:
-            print("NONE")
+            print("Serial Send None: " + message)
             self.connect()
             return
         if(escape):

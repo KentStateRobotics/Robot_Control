@@ -13,8 +13,11 @@ import time
 
 class control:
     def __init__(self, httpPort, sockPort):
-        self._RAMP_SLOPE = 60
+        self._RampSlope = 60
         self._RAMP_DELAY = .25
+        self._isRamping = False
+        self._deadRange = 32
+        self._deadRangeMult = 1
         self.commandStatus = {}
         self.powerStatus = {}
         self.motorStatus = {}
@@ -76,13 +79,16 @@ class control:
 
     def sockRec(self, message):
         if field.action.value in message:
-            print("SOCK REC")
             if message[field.action.value] == action.requestAll.value:
                 self.websockServ.send(self.getAll())
             elif message[field.action.value] == action.command.value:
+                print("Command REC")
                 if field.motor.value in message and len(message[field.motor.value]) > 0:
                     self.motorCommand(message[field.motor.value])
-            elif message[field.action.value] == action.alive.value:
+                if field.ramp.value in message:
+                    self._RampSlope = int(127 / float(message[field.ramp.value]))
+                    print("RAMP: " +  str(self._RampSlope))
+            elif message[field.action.value] == action.alive.value and not self._isRamping:
                 self.arduinoConn.write(json.dumps(self.commandStatus))
             elif message[field.action.value] == action.stop.value:
                 self.stop()
@@ -105,11 +111,19 @@ class control:
             req = {}
             for key in [motor.driveL.value, motor.driveR.value]:
                 if self.commandStatus[key] != self.motorStatus[key]:
+                    self._isRamping = True
                     if self.commandStatus[key] < self.motorStatus[key]:
-                        self.motorStatus[key] = max(self.commandStatus[key],min(127, self.motorStatus[key] - self._RAMP_SLOPE * self._RAMP_DELAY))
+                        self.motorStatus[key] = max(self.commandStatus[key],min(127, self.motorStatus[key] - self._RampSlope * self._RAMP_DELAY))
+                        if self.motorStatus[key] > -1 * self._deadRange and self.motorStatus[key] < 0:
+                            self.motorStatus[key] =  max(-1 * self._deadRange,max(self.commandStatus[key],min(127, self.motorStatus[key] - self._RampSlope * self._RAMP_DELAY * self._deadRangeMult)))
                     elif self.commandStatus[key] > self.motorStatus[key]:
-                        self.motorStatus[key] = max(-127,min(self.commandStatus[key], self.motorStatus[key] + self._RAMP_SLOPE * self._RAMP_DELAY))
+                        self.motorStatus[key] = max(-127,min(self.commandStatus[key], self.motorStatus[key] + self._RampSlope * self._RAMP_DELAY))
+                        if self.motorStatus[key] > 0 and self.motorStatus[key] < self._deadRange:
+                            print("Deadzone up: " + str(self.motorStatus[key]))
+                            self.motorStatus[key] = max(-127, min(self._deadRange, min(self.commandStatus[key], self.motorStatus[key] + self._RampSlope * self._RAMP_DELAY * self._deadRangeMult)))
                     req[key] = self.motorStatus[key]
+                else:
+                    self._isRamping = False
             if(len(req.items()) > 0): self.arduinoConn.write(json.dumps(req))
             time.sleep(self._RAMP_DELAY)
 

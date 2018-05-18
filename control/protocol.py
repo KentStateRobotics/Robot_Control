@@ -10,6 +10,7 @@ class field(Enum):
     action = "0"
     motor = "1"
     power = "2"
+    ramp = "3"
 @unique
 class action(Enum):
     requestAll = "0"

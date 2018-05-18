@@ -102,15 +102,15 @@ var keys = [
         req[net.field.motor][net.motor.actElbow] = -127;
         return req;
     }),
-    inputKey('lockDrive', '2', (req = {}) => {
+    inputKey('lockDrive', 'h', (req = {}) => {
         lockDrive = true;
         return req;
     }),
-    inputKey('lockArm', '1', (req = {}) => {
+    inputKey('lockArm', 'j', (req = {}) => {
         lockArm = true;
         return req;
     }),
-    inputKey('invert', '0', (req = {}) => {
+    inputKey('invert', 'k', (req = {}) => {
         invert = true;
         return req;
     }),
@@ -120,6 +120,7 @@ const net = { //Protocall used to send / receive info
         action: "0",
         motor: "1",
         power: "2",
+        ramp: "3"
     },
     action: {
         requestAll: "0",
@@ -636,6 +637,12 @@ function buttonClick(button){
             send(buttons[i].evt(req));
         }
     }
+}
+function ramp(){
+    req = {};
+    req[net.field.action] = net.action.command;
+    req[net.field.ramp] = document.getElementById("rampInput").value;
+    send(req);
 }
 //#endregion
 start();
