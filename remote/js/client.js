@@ -143,6 +143,7 @@ const net = { //Protocall used to send / receive info
     }
 }
 const THRESHOLD_MOUSE3D = .2
+const THRESHOLD_CONTROLER = .2
 var power = {};
 var commandStatus = {};
 var gauges = {};
@@ -172,7 +173,7 @@ var state3dMouse = {
 		5:0,
 	}
 }
-buttonMap3dMouse = {
+var buttonMap3dMouse = {
 	axes: {
 		right: 0,
 		backward: 1,
@@ -184,6 +185,57 @@ buttonMap3dMouse = {
 	buttons: {
 		left: 0,
 		right: 1,
+	}
+}
+var stateController = {
+	buttons: {
+		0: 0,
+        1: 0,
+        3: 0,
+        4: 0,
+        5: 0,
+        6: 0,
+        7: 0,
+        8: 0,
+        9: 0,
+        10: 0,
+        11: 0,
+        12: 0,
+        13: 0,
+        14: 0,
+        15: 0,
+	},
+	axes: {
+		0:0,
+		1:0,
+		2:0,
+		3:0
+	}
+}
+var buttonMapController = {
+	axes: {
+        leftHori: 0,
+        leftVert: 1,
+        rightHori: 2,
+        rightVert: 3
+	},
+	buttons: {
+        a: 0,
+        b: 1,
+        x: 2,
+        y: 3,
+        leftBump: 4,
+        rightBump: 5,
+        leftTrigger: 6,
+        rightTrigger: 7,
+        select: 8,
+        start: 9,
+        leftStick: 10,
+        rightStick: 11,
+        up: 12,
+        down: 13,
+        left: 14,
+        right: 15
 	}
 }
 //#endregion
@@ -622,6 +674,108 @@ function gamepadLoop(){
                 state3dMouse.buttons[i] = gamepads[gamepadInUse].buttons[i].pressed;
                 console.log(Object.keys(buttonMap3dMouse.buttons)[i] + ": " + state3dMouse.buttons[i]);
             }
+        }
+    }else if(gamepads[gamepadInUse] != null && gamepads[gamepadInUse].id.indexOf("Xbox") != -1){ //Change XBOX here to PS
+        let command = {};
+        for(let i = 0; i < 4; ++i){
+            if(stateController.axes[i] > gamepads[gamepadInUse].axes[i] + THRESHOLD_CONTROLER || stateController.axes[i] < gamepads[gamepadInUse].axes[i] - THRESHOLD_CONTROLER){
+                console.log(i + ' : ' + stateController.axes[i] + " : " + gamepads[gamepadInUse].axes[i]);
+                stateController.axes[i] = gamepads[gamepadInUse].axes[i];
+                if(stateController.axes[i] <= THRESHOLD_CONTROLER && stateController.axes[i] >= -1 * THRESHOLD_CONTROLER){
+                    stateController.axes[i] = 0;
+                } else if(stateController.axes[i] >= 1 - THRESHOLD_CONTROLER || stateController.axes[i] <= -1 + THRESHOLD_CONTROLER){
+                    stateController.axes[i] = stateController.axes[i] / Math.abs(stateController.axes[i]);
+                }
+                switch(i){
+                    case buttonMapController.axes.leftHori:
+                        if(!lockDrive){
+                            if(stateController.axes[buttonMapController.axes.backward] != 0){
+                                command[net.motor.driveR] = Math.min(Math.max(stateController.axes[buttonMapController.axes.leftVert] * -127 * (invert ? -1 : 1) - stateController.axes[buttonMapController.axes.leftHori] * 127, -127), 127);
+                                command[net.motor.driveL] = Math.min(Math.max(stateController.axes[buttonMapController.axes.leftVert] * -127 * (invert ? -1 : 1) + stateController.axes[buttonMapController.axes.leftHori] * 127, -127), 127);
+                            }else{
+                                command[net.motor.driveR] = buttonMapController.axes[i] * -127
+                                command[net.motor.driveL] = buttonMapController.axes[i] * 127
+                            }
+                            document.getElementById('butRight').style.backgroundColor = '';
+                            document.getElementById('butLeft').style.backgroundColor = '';
+                            if(stateController.axes[i] < 0){
+                                document.getElementById('butLeft').style.backgroundColor = 'gray';
+                            } else if(stateController.axes[i] > 0){
+                                document.getElementById('butRight').style.backgroundColor = 'gray';
+                            }
+                        }
+                    break;
+                    case buttonMapController.axes.leftVert:
+                        if(!lockDrive){
+                            if(stateController.axes[buttonMapController.axes.leftHori] != 0 && stateController.axes[buttonMapController.axes.leftHori] != undefined){
+                                command[net.motor.driveR] = Math.min(Math.max(stateController.axes[buttonMapController.axes.leftVert] * (invert ? -1 : 1) * -127 - stateController.axes[buttonMapController.axes.leftHori] * 127, -127), 127) ;
+                                command[net.motor.driveL] = Math.min(Math.max(stateController.axes[buttonMapController.axes.leftVert] * (invert ? -1 : 1) * -127 + stateController.axes[buttonMapController.axes.leftHori] * 127, -127), 127);
+                            }else{
+                                command[net.motor.driveR] = stateController.axes[i] * -127 * (invert ? -1 : 1);
+                                command[net.motor.driveL] = stateController.axes[i] * -127 * (invert ? -1 : 1);
+                            }
+                            document.getElementById('comSpeed').value = Math.abs(stateController.axes[i] * 127);
+                            document.getElementById('butForward').style.backgroundColor = '';
+                            document.getElementById('butReverse').style.backgroundColor = '';
+                            if(stateController.axes[i] < 0){
+                                document.getElementById('butForward').style.backgroundColor = 'gray';
+                            } else if(stateController.axes[i] > 0){
+                                document.getElementById('butReverse').style.backgroundColor = 'gray';
+                            }
+                        }
+                    break;
+                    case buttonMapController.axes.rightHori:
+                    break;
+                    case buttonMapController.axes.rightVert:
+                        if(!lockArm){
+                            command[net.motor.actWrist] = stateController.axes[i] * 127;
+                            document.getElementById('butWUp').style.backgroundColor = '';
+                            document.getElementById('butWDown').style.backgroundColor = '';
+                            if(stateController.axes[i] > 0){
+                                document.getElementById('butWUp').style.backgroundColor = 'gray';
+                            }else if(stateController.axes[i] < 0){
+                                document.getElementById('butWDown').style.backgroundColor = 'gray';
+                            }
+                        }
+                    break;
+                }
+            }
+        }
+        for(let i = 0; i < 16; ++i){
+            if(stateController.buttons[i] != gamepads[gamepadInUse].buttons[i].pressed){
+                stateController.buttons[i] = gamepads[gamepadInUse].buttons[i].pressed;
+                if(i == buttonMapController.buttons.leftTrigger){
+                    if(!lockArm){
+                        document.getElementById('butEUp').style.backgroundColor = '';
+                        document.getElementById('butEDown').style.backgroundColor = '';
+                        if(stateController.buttons[i]){
+                            command[net.motor.actElbow] = 127;
+                            document.getElementById('butEUp').style.backgroundColor = 'gray';
+                        }else {
+                            command[net.motor.actElbow] = 0;
+                        }
+
+                    }
+                }else if(i == buttonMapController.buttons.rightTrigger){
+                    if(!lockArm){
+                        document.getElementById('butEUp').style.backgroundColor = '';
+                        document.getElementById('butEDown').style.backgroundColor = '';
+                        if(stateController.buttons[i]){
+                            command[net.motor.actElbow] = -127;
+                            document.getElementById('butEDown').style.backgroundColor = 'gray';
+                        }else {
+                            command[net.motor.actElbow] = 0;
+                        }
+                    }
+                }
+                console.log(Object.keys(buttonMapController.buttons)[i] + ": " + stateController.buttons[i]);
+            }
+        }
+        if(Object.keys(command).length > 0){
+            let req = {};
+            req[net.field.action] = net.action.command;
+            req[net.field.motor] = command;
+            send(req);
         }
     }
     if(gamepadLoopRunning) requestAnimationFrame(gamepadLoop);
