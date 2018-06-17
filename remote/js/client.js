@@ -675,7 +675,7 @@ function gamepadLoop(){
                 console.log(Object.keys(buttonMap3dMouse.buttons)[i] + ": " + state3dMouse.buttons[i]);
             }
         }
-    }else if(gamepads[gamepadInUse] != null && gamepads[gamepadInUse].id.indexOf("Xbox") != -1){ //Change XBOX here to PS
+    }else if(gamepads[gamepadInUse] != null && gamepads[gamepadInUse].id.indexOf("Wireless Controller") != -1){ //Change XBOX here to PS
         let command = {};
         for(let i = 0; i < 4; ++i){
             if(stateController.axes[i] > gamepads[gamepadInUse].axes[i] + THRESHOLD_CONTROLER || stateController.axes[i] < gamepads[gamepadInUse].axes[i] - THRESHOLD_CONTROLER){
@@ -728,12 +728,12 @@ function gamepadLoop(){
                     break;
                     case buttonMapController.axes.rightVert:
                         if(!lockArm){
-                            command[net.motor.actWrist] = stateController.axes[i] * 127;
+                            command[net.motor.actWrist] = stateController.axes[i] * -127;
                             document.getElementById('butWUp').style.backgroundColor = '';
                             document.getElementById('butWDown').style.backgroundColor = '';
-                            if(stateController.axes[i] > 0){
+                            if(command[net.motor.actWrist] > 0){
                                 document.getElementById('butWUp').style.backgroundColor = 'gray';
-                            }else if(stateController.axes[i] < 0){
+                            }else if(command[net.motor.actWrist] < 0){
                                 document.getElementById('butWDown').style.backgroundColor = 'gray';
                             }
                         }
@@ -744,7 +744,7 @@ function gamepadLoop(){
         for(let i = 0; i < 16; ++i){
             if(stateController.buttons[i] != gamepads[gamepadInUse].buttons[i].pressed){
                 stateController.buttons[i] = gamepads[gamepadInUse].buttons[i].pressed;
-                if(i == buttonMapController.buttons.leftTrigger){
+                if(i == buttonMapController.buttons.rightTrigger){
                     if(!lockArm){
                         document.getElementById('butEUp').style.backgroundColor = '';
                         document.getElementById('butEDown').style.backgroundColor = '';
@@ -756,7 +756,7 @@ function gamepadLoop(){
                         }
 
                     }
-                }else if(i == buttonMapController.buttons.rightTrigger){
+                }else if(i == buttonMapController.buttons.leftTrigger){
                     if(!lockArm){
                         document.getElementById('butEUp').style.backgroundColor = '';
                         document.getElementById('butEDown').style.backgroundColor = '';
